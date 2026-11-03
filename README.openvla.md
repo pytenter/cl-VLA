@@ -1,4 +1,4 @@
-> 保留的模型分支说明。main 的统一入口与协作规则以 [README.md](README.md) 为准。
+> 保留的 OpenVLA 模型分支原说明，以下命令适用于 `openvla` 分支；`main` 的统一运行入口与协作规则请见 [README.md](README.md)。
 
 # CL-LoRA on OpenVLA
 
@@ -30,7 +30,7 @@
 ```bash
 git clone --branch openvla --single-branch https://github.com/pytenter/cl-VLA.git
 cd cl-VLA
-cp .env.openvla.example .env.openvla
+cp .env.example .env
 # 编辑 .env 中的模型、数据、环境和外部 benchmark 路径
 ```
 
@@ -44,11 +44,11 @@ cp .env.openvla.example .env.openvla
 每个终端只选择一个运行配置，避免两套同名 `prismatic` / `experiments` 包混入同一 Python 进程：
 
 ```bash
-source .env.openvla
-source scripts/env.sh openvla-libero
+source .env
+source scripts/env.sh libero
 # 或在新的终端中重新加载 .env，再使用：
-# source .env.openvla
-# source scripts/env.sh openvla-robotwin
+# source .env
+# source scripts/env.sh robotwin
 ```
 
 `scripts/env.sh` 配置源码与资源路径；依赖安装和模型补齐仍需先完成。确认 Python 实际导入的包路径后，再使用对应入口。历史命令和实验参数见 [原始 README](docs/original/README.zh-CN.md) 与 [实验记录](docs/original/REPLAY_BUG_NOTES.md)，`legacy_runs/` 里的脚本需要逐项调整后运行。
