@@ -8,7 +8,7 @@
 
 依赖以 `pi05/pyproject.toml`、`pi05/uv.lock` 及发布的运行依赖记录为准。既有环境的关键版本为 Python 3.11、JAX 0.5.0、Flax 0.10.2、Orbax Checkpoint 0.11.1、NumPy 1.26.4；LeRobot 固定到 `a445d9c9da6bea99a8972daa4fe1fdd053d711d2`。LIBERO 仿真还需要对应的 MuJoCo、robosuite、LIBERO 包与固定资产。
 
-按 `.env.example` 与 `scripts/env.sh` 配置当前机器路径，使核心、客户端和所选实验模块可导入。实验运行目录与仓库源码目录应区分：历史 supervisor 会寻找运行根目录下的 `scripts/`、`reports/`、`configs/`、`assets/` 等布局。环境变量模板不代表这些运行输入已经生成。
+按 `.env.pi05.example` 与 `scripts/env.sh` 配置当前机器路径，使核心、客户端和所选实验模块可导入。实验运行目录与仓库源码目录应区分：历史 supervisor 会寻找运行根目录下的 `scripts/`、`reports/`、`configs/`、`assets/` 等布局。环境变量模板不代表这些运行输入已经生成。
 
 基础参数使用官方 `pi05_base`。准备独立的模型、数据和运行目录，保持原始输入只读。具体入口和可用参数可先查看：
 

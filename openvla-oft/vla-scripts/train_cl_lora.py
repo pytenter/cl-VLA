@@ -1,0 +1,1185 @@
+"""
+train_cl_lora.py — CL-LoRA continual learning training script for OpenVLA.
+
+Ports the PI-series CL-LoRA + prototype replay continual learning pipeline to PyTorch.
+Supports three training branches via CLI flags:
+
+  Branch 2: CL-LoRA + no replay       (--no_kd --no_replay)
+  Branch 3: CL-LoRA + Prototype Replay (--use_kd --use_replay --replay_buffer_dirs .../prototypes)
+  Branch 4: CL-LoRA + Uniform Replay   (--use_kd --use_replay --replay_buffer_dirs .../uniform)
+
+Reference: PI0.5 train_cl_lora.py (pi0.5代码/train_cl_lora.py)
+"""
+
+import copy
+import json
+import os
+import time
+from collections import deque
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import draccus
+import torch
+import torch.distributed as dist
+import torch.nn as nn
+import torch.nn.functional as F
+import tqdm
+from accelerate import PartialState
+from huggingface_hub import snapshot_download
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import MultiStepLR
+from torch.utils.data import DataLoader
+from transformers import AutoConfig, AutoImageProcessor, AutoModelForVision2Seq, AutoProcessor
+from transformers.modeling_outputs import CausalLMOutputWithPast
+
+import wandb
+
+from experiments.robot.openvla_utils import (
+    check_model_logic_mismatch,
+    model_is_on_hf_hub,
+    update_auto_map,
+)
+from cl_lora import (CLLoRALinear, inject_cl_lora_into_model,
+                      inject_cl_lora_into_action_head,
+                      freeze_stage1_params, reinit_bank_for_new_task,
+                      save_task_bank, load_task_bank, shared_param_ids, specific_a_param_ids,
+                      apply_specific_a_layer_mask, parse_layer_spec)
+from replay_dataset import PrototypeReplayDataset
+
+from prismatic.extern.hf.configuration_prismatic import OpenVLAConfig
+from prismatic.extern.hf.modeling_prismatic import OpenVLAForActionPrediction
+from prismatic.extern.hf.processing_prismatic import PrismaticImageProcessor, PrismaticProcessor
+from prismatic.models.action_heads import DiffusionActionHead, L1RegressionActionHead
+from prismatic.models.backbones.llm.prompting import PurePromptBuilder
+from prismatic.models.film_vit_wrapper import FiLMedPrismaticVisionBackbone
+from prismatic.models.projectors import NoisyActionProjector, ProprioProjector
+from prismatic.training.train_utils import (
+    compute_actions_l1_loss,
+    compute_token_accuracy,
+    get_current_action_mask,
+    get_next_actions_mask,
+)
+from prismatic.util.data_utils import PaddedCollatorForActionPrediction
+from prismatic.vla.action_tokenizer import ActionTokenizer
+from prismatic.vla.constants import (
+    ACTION_DIM,
+    ACTION_PROPRIO_NORMALIZATION_TYPE,
+    NUM_ACTIONS_CHUNK,
+    PROPRIO_DIM,
+)
+
+def _merge_previous_stats(cfg, current_stats: dict) -> dict:
+    """Merge previous checkpoint's dataset_statistics into the current one.
+
+    In continual learning, a later-stage checkpoint must retain the statistics of all
+    earlier tasks: evaluation of any task looks up `norm_stats[unnorm_key]` from the
+    same checkpoint, and old tasks' stats are only present in older checkpoints.
+    """
+    merged = dict(current_stats)
+    if cfg.previous_checkpoint_dir is not None:
+        prev_file = os.path.join(cfg.previous_checkpoint_dir, "dataset_statistics.json")
+        if os.path.exists(prev_file):
+            with open(prev_file, "r") as f:
+                prev_stats = json.load(f)
+            for k, v in prev_stats.items():
+                merged.setdefault(k, v)
+    return merged
+from prismatic.vla.datasets import RLDSBatchTransform, RLDSDataset
+from prismatic.vla.datasets.rlds.utils.data_utils import save_dataset_statistics
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+
+# ==============================================================================
+# Config
+# ==============================================================================
+
+@dataclass
+class TrainCLConfig:
+    # fmt: off
+    # ---- Model ----
+    vla_path: str = "openvla/openvla-7b"
+
+    # ---- FiLM 控制 ----
+    freeze_film_stage2: bool = False     # True=Stage>1 冻结 FiLM(高保留); False=漂移版(低残留基线)
+    film_lr_scale: float = 1.0           # FiLM 参数学习率 = 主lr × scale (漂移力度旋钮, 1.0=原行为)
+    film_anchor_reg: float = 0.0         # FiLM 锚定正则权重 λ (把 FiLM 拉向 stage1 值, 0=关闭)
+    film_anchor_dir: Optional[str] = None  # 锚定目标 checkpoint (通常 = Stage1 A 的 ckpt)
+    film_anchor_step: Optional[int] = None # 锚定目标 step
+
+    # ---- Dataset ----
+    data_root_dir: Path = Path("datasets/rlds")
+    dataset_name: str = "libero_spatial_no_noops"
+    run_root_dir: Path = Path("runs")
+    shuffle_buffer_size: int = 100_000
+
+    # ---- Action head ----
+    use_l1_regression: bool = True
+    use_diffusion: bool = False
+    num_diffusion_steps_train: int = 50
+    use_film: bool = False
+    num_images_in_input: int = 1
+    use_proprio: bool = False
+
+    # ---- Training ----
+    batch_size: int = 8
+    learning_rate: float = 5e-4
+    lr_warmup_steps: int = 0
+    num_steps_before_decay: int = 100_000
+    grad_accumulation_steps: int = 1
+    max_steps: int = 200_000
+    image_aug: bool = True
+    diffusion_sample_freq: int = 50
+
+    # ---- CL-LoRA ----
+    use_cl_lora: bool = True
+    lora_rank: int = 32
+    lora_dropout: float = 0.0
+    shared_depth: int = 16
+    orthogonal_init: bool = True
+    freeze_a: bool = True
+    use_block_scale: bool = True
+    freeze_specific_a: bool = True             # v7: freeze specific A after Stage 1. Set False for cross-domain.
+    freeze_shared: bool = True                 # 实验开关: False = 解冻 shared A/B（制造"共享通路漂移"遗忘源, 无 bank 可恢复）
+    shared_lr_scale: float = 1.0               # 解冻后 shared A/B 的 lr 缩放（<1 = 温和漂移, 用于得到连续可调的残留曲线）
+    specific_a_lr_scale: float = 1.0           # freeze_specific_a=False 时 A 的 lr 缩放（<1 = "部分解冻", 探 A 漂移阈值）
+    bank_save_specific_a: bool = False         # True = bank 额外存 specific-A 快照（评估时 A_K+B_K 同时恢复 ⇒ 配对精确复原）
+    specific_a_trainable_layers: str = ""      # "按层保护量"旋钮: 允许保持可训练的 specific-A 层号(如 "28-31"); 空=全部可训练(原行为)
+    specific_a_freeze_action_head: bool = True  # 动作头 4 个注入层无层号 ⇒ 单独开关(默认冻结, 只看 LLM 层)
+    specific_a_action_head_keep: str = ""       # 动作头 A 的精细控制: ""=按上一个开关 | "all" | "none" | 子串(如 "fc2")
+    bank_film_mode: str = "film"               # task bank 存多少 FiLM: none(不存) | film(只存 scale/shift ~0.2MB) | full(整份 vision_backbone ~2.4GB, 旧行为)
+    first_lora_layer: int = 0                  # PI action-expert: only inject LoRA from this layer onward
+    clip_weight: float = 1.0
+    merge_lora_during_training: bool = False
+
+    # ---- Knowledge Distillation ----
+    use_kd: bool = True
+    lambda_kd: float = 1.0
+    teacher_checkpoint_dir: Optional[str] = None
+    teacher_checkpoint_step: Optional[int] = None
+
+    # ---- Replay ----
+    use_replay: bool = False
+    # 逗号分隔的 buffer 目录列表 (draccus 对 List[str] 的 CLI 解析不可靠, 用 str 绕开)
+    replay_buffer_dirs: str = ""
+    replay_loss_weight: float = 1.0
+    replay_every_n_steps: int = 1
+    replay_sample_strategy: str = "round_robin"
+    replay_batch_size: Optional[int] = None
+
+    # ---- Stage management ----
+    stage: int = 1
+    skip_reinit: bool = False
+    previous_checkpoint_dir: Optional[str] = None
+    previous_checkpoint_step: Optional[int] = None
+
+    # ---- Checkpoint / Resume ----
+    save_freq: int = 10_000
+    save_latest_checkpoint_only: bool = False
+    resume: bool = False
+    resume_step: Optional[int] = None
+
+    # ---- Logging ----
+    wandb_entity: str = "your-wandb-entity"
+    wandb_project: str = "your-wandb-project"
+    run_id_note: Optional[str] = None
+    run_id_override: Optional[str] = None
+    wandb_log_freq: int = 10
+
+    # ---- Validation ----
+    use_val_set: bool = False
+    val_freq: int = 10_000
+    val_time_limit: int = 180
+    # fmt: on
+
+
+# ==============================================================================
+# Helpers
+# ==============================================================================
+
+def remove_ddp_in_checkpoint(state_dict: dict) -> dict:
+    new_state_dict = {}
+    for k, v in state_dict.items():
+        if k[:7] == "module.":
+            new_state_dict[k[7:]] = v
+        else:
+            new_state_dict[k] = v
+    return new_state_dict
+
+
+def wrap_ddp(module: nn.Module, device_id: int, find_unused: bool = False) -> DDP:
+    return DDP(module, device_ids=[device_id], find_unused_parameters=find_unused, gradient_as_bucket_view=True)
+
+
+def count_parameters(module: nn.Module, name: str) -> None:
+    num_params = sum(p.numel() for p in module.parameters() if p.requires_grad)
+    print(f"# trainable params in {name}: {num_params}")
+
+
+def load_checkpoint(module_name: str, path: str, step: int, device: str = "cpu") -> dict:
+    checkpoint_path = os.path.join(path, f"{module_name}--{step}_checkpoint.pt")
+    print(f"Loading checkpoint: {checkpoint_path}")
+    state_dict = torch.load(checkpoint_path, weights_only=True, map_location=device)
+    return remove_ddp_in_checkpoint(state_dict)
+
+
+def get_run_id(cfg: TrainCLConfig) -> str:
+    if cfg.run_id_override is not None:
+        return cfg.run_id_override
+    run_id = (
+        f"{cfg.vla_path.split('/')[-1]}+{cfg.dataset_name}"
+        f"+b{cfg.batch_size * cfg.grad_accumulation_steps}"
+        f"+lr-{cfg.learning_rate}"
+    )
+    run_id += f"+cl-lora-r{cfg.lora_rank}+sd{cfg.shared_depth}"
+    if cfg.use_kd:
+        run_id += f"+kd{cfg.lambda_kd}"
+    if cfg.use_replay:
+        run_id += "+replay"
+    if cfg.run_id_note is not None:
+        run_id += f"--{cfg.run_id_note}"
+    return run_id
+
+
+# ==============================================================================
+# Teacher snapshot (PI-style: only save trainable CL-LoRA params)
+# ==============================================================================
+
+def save_teacher_snapshot(
+    model: nn.Module,
+    action_head: Optional[nn.Module],
+    save_dir: Path,
+    step: int,
+) -> None:
+    """Save snapshot of only the trainable CL-LoRA parameters and action head.
+
+    Mirrors PI _snapshot_trainable_params(): captures a minimal parameter set
+    so that teacher consumes negligible extra GPU memory during KD.
+    """
+    save_dir = Path(save_dir)
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    snapshot = {}
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            snapshot[f"model.{name}"] = param.data.cpu().clone()
+
+    if action_head is not None:
+        for name, param in action_head.named_parameters():
+            if param.requires_grad:
+                snapshot[f"action_head.{name}"] = param.data.cpu().clone()
+
+    save_path = save_dir / f"teacher_snapshot--{step}.pt"
+    torch.save(snapshot, save_path)
+    print(f"[Teacher] Snapshot saved ({len(snapshot)} tensors) → {save_path}")
+
+
+def load_teacher_snapshot(path: str) -> Dict[str, torch.Tensor]:
+    print(f"[Teacher] Loading snapshot from {path}")
+    return torch.load(path, weights_only=True, map_location="cpu")
+
+
+def swap_to_teacher(model: nn.Module, action_head: Optional[nn.Module], teacher: dict, device) -> dict:
+    """Swap teacher trainable params into the model. Returns original student params."""
+    student_copy = {}
+    for name, param in model.named_parameters():
+        key = f"model.{name}"
+        if key in teacher:
+            student_copy[name] = param.data.clone()
+            param.data.copy_(teacher[key].to(device))
+
+    if action_head is not None:
+        for name, param in action_head.named_parameters():
+            key = f"action_head.{name}"
+            if key in teacher:
+                student_copy[f"ah_{name}"] = param.data.clone()
+                param.data.copy_(teacher[key].to(device))
+
+    return student_copy
+
+
+def restore_student(model: nn.Module, action_head: Optional[nn.Module], student_copy: dict) -> None:
+    """Restore student params after teacher KD forward pass."""
+    for name, param in model.named_parameters():
+        if name in student_copy:
+            param.data.copy_(student_copy[name])
+
+    if action_head is not None:
+        for name, param in action_head.named_parameters():
+            key = f"ah_{name}"
+            if key in student_copy:
+                param.data.copy_(student_copy[key])
+
+
+# ==============================================================================
+# Forward pass — returns both loss and intermediate predictions for KD/replay
+# ==============================================================================
+
+def run_forward_pass_extended(
+    vla,
+    action_head,
+    noisy_action_projector,
+    proprio_projector,
+    batch,
+    action_tokenizer,
+    device_id,
+    use_l1_regression: bool,
+    use_diffusion: bool,
+    use_proprio: bool,
+    use_film: bool,
+    num_patches: int,
+    compute_diffusion_l1: bool = False,
+    num_diffusion_steps_train: Optional[int] = None,
+    return_predictions: bool = False,
+) -> Tuple[torch.Tensor, Dict[str, float], Optional[torch.Tensor], Optional[torch.Tensor]]:
+    """Extended forward pass. When return_predictions=True, also returns
+    (predicted_actions, actions_hidden_states) for KD loss computation.
+
+    Returns:
+        loss, metrics, predicted_actions, actions_hidden_states
+    """
+    metrics = {}
+    predicted_actions = None
+    actions_hidden_states_out = None
+
+    ground_truth_actions = batch["actions"].to(device_id).to(torch.bfloat16)
+
+    if use_diffusion:
+        noisy_dict = action_head.module.sample_noisy_actions(ground_truth_actions)
+        noise, noisy_actions, diffusion_timestep_embeddings = (
+            noisy_dict["noise"],
+            noisy_dict["noisy_actions"],
+            noisy_dict["diffusion_timestep_embeddings"],
+        )
+    else:
+        noise, noisy_actions, diffusion_timestep_embeddings = None, None, None
+
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        output: CausalLMOutputWithPast = vla(
+            input_ids=batch["input_ids"].to(device_id),
+            attention_mask=batch["attention_mask"].to(device_id),
+            pixel_values=batch["pixel_values"].to(torch.bfloat16).to(device_id),
+            labels=batch["labels"],
+            output_hidden_states=True,
+            proprio=batch["proprio"] if use_proprio else None,
+            proprio_projector=proprio_projector if use_proprio else None,
+            noisy_actions=noisy_actions if use_diffusion else None,
+            noisy_action_projector=noisy_action_projector if use_diffusion else None,
+            diffusion_timestep_embeddings=diffusion_timestep_embeddings if use_diffusion else None,
+            use_film=use_film,
+        )
+
+    ground_truth_token_ids = batch["labels"][:, 1:].to(device_id)
+    current_action_mask = get_current_action_mask(ground_truth_token_ids)
+    next_actions_mask = get_next_actions_mask(ground_truth_token_ids)
+
+    if not (use_l1_regression or use_diffusion):
+        loss = output.loss
+        predicted_token_ids = output.logits[:, num_patches:-1].argmax(dim=2)
+        curr_action_accuracy = compute_token_accuracy(predicted_token_ids, ground_truth_token_ids, mask=current_action_mask)
+        curr_action_l1_loss = compute_actions_l1_loss(action_tokenizer, predicted_token_ids, ground_truth_token_ids, mask=current_action_mask)
+        next_actions_accuracy = compute_token_accuracy(predicted_token_ids, ground_truth_token_ids, mask=next_actions_mask)
+        next_actions_l1_loss = compute_actions_l1_loss(action_tokenizer, predicted_token_ids, ground_truth_token_ids, mask=next_actions_mask)
+        metrics.update({
+            "loss_value": loss.item(),
+            "curr_action_accuracy": curr_action_accuracy.item(),
+            "curr_action_l1_loss": curr_action_l1_loss.item(),
+            "next_actions_accuracy": next_actions_accuracy.item(),
+            "next_actions_l1_loss": next_actions_l1_loss.item(),
+        })
+    else:
+        last_hidden_states = output.hidden_states[-1]
+        text_hidden_states = last_hidden_states[:, num_patches:-1]
+        batch_size = batch["input_ids"].shape[0]
+        actions_hidden_states = (
+            text_hidden_states[current_action_mask | next_actions_mask]
+            .reshape(batch_size, NUM_ACTIONS_CHUNK * ACTION_DIM, -1)
+            .to(torch.bfloat16)
+        )
+
+        if use_l1_regression:
+            predicted_actions = action_head.module.predict_action(actions_hidden_states)
+            loss = torch.nn.L1Loss()(ground_truth_actions, predicted_actions)
+
+        if use_diffusion:
+            noise_pred = action_head.module.predict_noise(actions_hidden_states)
+            noise_pred = noise_pred.reshape(noise.shape)
+            loss = nn.functional.mse_loss(noise_pred, noise, reduction="mean")
+
+            if compute_diffusion_l1:
+                with torch.no_grad():
+                    predicted_actions = _run_diffusion_sampling(
+                        vla=vla, action_head=action_head,
+                        noisy_action_projector=noisy_action_projector,
+                        proprio_projector=proprio_projector,
+                        batch=batch, batch_size=batch_size,
+                        num_patches=num_patches,
+                        actions_shape=ground_truth_actions.shape,
+                        device_id=device_id,
+                        current_action_mask=current_action_mask,
+                        next_actions_mask=next_actions_mask,
+                        use_proprio=use_proprio, use_film=use_film,
+                    )
+
+        metrics.update({"loss_value": loss.item()})
+
+        should_log_l1 = not use_diffusion or (use_diffusion and compute_diffusion_l1)
+        if should_log_l1:
+            ground_truth_curr_action = ground_truth_actions[:, 0]
+            predicted_curr_action = predicted_actions[:, 0]
+            ground_truth_next_actions = ground_truth_actions[:, 1:]
+            predicted_next_actions = predicted_actions[:, 1:]
+            curr_action_l1_loss = torch.nn.L1Loss()(ground_truth_curr_action, predicted_curr_action)
+            next_actions_l1_loss = torch.nn.L1Loss()(ground_truth_next_actions, predicted_next_actions)
+            metrics.update({
+                "curr_action_l1_loss": curr_action_l1_loss.item(),
+                "next_actions_l1_loss": next_actions_l1_loss.item(),
+            })
+
+        if return_predictions:
+            actions_hidden_states_out = actions_hidden_states
+
+    return loss, metrics, predicted_actions, actions_hidden_states_out
+
+
+def _run_diffusion_sampling(
+    vla, action_head, noisy_action_projector, proprio_projector,
+    batch, batch_size, num_patches, actions_shape, device_id,
+    current_action_mask, next_actions_mask, use_proprio, use_film,
+) -> torch.Tensor:
+    noise = torch.randn(size=(batch_size, NUM_ACTIONS_CHUNK, ACTION_DIM), device=device_id, dtype=torch.bfloat16)
+    action_head.module.noise_scheduler.set_timesteps(action_head.module.num_diffusion_steps_train)
+
+    curr_noisy_actions = noise
+    for t in action_head.module.noise_scheduler.timesteps:
+        timesteps = torch.Tensor([t]).repeat(batch_size).to(device_id)
+        diffusion_timestep_embeddings = action_head.module.time_encoder(timesteps).to(curr_noisy_actions.dtype).to(curr_noisy_actions.device).unsqueeze(1)
+
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            output = vla(
+                input_ids=batch["input_ids"].to(device_id),
+                attention_mask=batch["attention_mask"].to(device_id),
+                pixel_values=batch["pixel_values"].to(torch.bfloat16).to(device_id),
+                labels=batch["labels"],
+                output_hidden_states=True,
+                proprio=batch["proprio"] if use_proprio else None,
+                proprio_projector=proprio_projector if use_proprio else None,
+                noisy_actions=curr_noisy_actions,
+                noisy_action_projector=noisy_action_projector,
+                diffusion_timestep_embeddings=diffusion_timestep_embeddings,
+                use_film=use_film,
+            )
+            last_hidden_states = output.hidden_states[-1]
+            text_hidden_states = last_hidden_states[:, num_patches:-1]
+            actions_hidden_states = text_hidden_states[current_action_mask | next_actions_mask].reshape(batch_size, NUM_ACTIONS_CHUNK * ACTION_DIM, -1).to(torch.bfloat16)
+            noise_pred = action_head.module.predict_noise(actions_hidden_states)
+
+        curr_noisy_actions = action_head.module.noise_scheduler.step(noise_pred, t, curr_noisy_actions).prev_sample
+
+    return curr_noisy_actions.reshape(actions_shape)
+
+
+# ==============================================================================
+# Replay helpers
+# ==============================================================================
+
+def _build_replay_loaders(
+    cfg: TrainCLConfig,
+    batch_transform: RLDSBatchTransform,
+) -> Tuple[Optional[List[DataLoader]], Optional[List[Any]]]:
+    """Build DataLoaders for each replay buffer directory."""
+    if not cfg.use_replay:
+        return None, None
+    if not cfg.replay_buffer_dirs.strip():
+        raise ValueError("--use_replay True but --replay_buffer_dirs is empty. "
+                         "Provide at least one replay buffer directory (逗号分隔).")
+    buffer_dirs = [d for d in cfg.replay_buffer_dirs.split(",") if d.strip()]
+    loaders = []
+    iters = []
+    replay_bs = cfg.replay_batch_size if cfg.replay_batch_size is not None else cfg.batch_size
+
+    for buf_dir in buffer_dirs:
+        dataset = PrototypeReplayDataset(buf_dir, batch_transform)
+        if len(dataset) == 0:
+            raise RuntimeError(f"Replay buffer at {buf_dir} contains 0 samples. "
+                               "Check that the buffer was built correctly.")
+        collator = PaddedCollatorForActionPrediction(
+            model_max_length=2048, pad_token_id=0, padding_side="right"
+        )
+        loader = DataLoader(
+            dataset,
+            batch_size=replay_bs,
+            shuffle=True,
+            collate_fn=collator,
+            num_workers=0,
+        )
+        loaders.append(loader)
+        iters.append(iter(loader))
+
+    print(f"[Replay] Initialized {len(loaders)} replay loaders from: {cfg.replay_buffer_dirs}")
+    return loaders, iters
+
+
+def _next_replay_batch(iters: list, loaders: list, strategy: str) -> dict:
+    """Get next replay batch using round-robin or random strategy."""
+    if strategy == "random":
+        import random
+        idx = random.randint(0, len(iters) - 1)
+    else:
+        idx = 0  # round-robin: external counter
+        # We use a simpler approach: cycle through loaders
+        _next_replay_batch._rr_counter = getattr(_next_replay_batch, '_rr_counter', 0)
+        idx = _next_replay_batch._rr_counter % len(iters)
+        _next_replay_batch._rr_counter += 1
+
+    try:
+        return next(iters[idx])
+    except StopIteration:
+        iters[idx] = iter(loaders[idx])
+        return next(iters[idx])
+
+
+def compute_smoothened_metrics(metrics_deques: dict) -> dict:
+    smoothened = {}
+    for name, dq in metrics_deques.items():
+        if dq and len(dq) > 0:
+            smoothened[name] = sum(dq) / len(dq)
+    return smoothened
+
+
+def log_metrics_to_wandb(metrics: dict, prefix: str, step: int, wandb_run) -> None:
+    log_dict = {}
+    for name, value in metrics.items():
+        if name == "loss_value":
+            log_dict[f"{prefix}/Loss"] = value
+        else:
+            log_dict[f"{prefix}/{name.replace('_', ' ').title()}"] = value
+    wandb_run.log(log_dict, step=step)
+
+
+# ==============================================================================
+# Main training function
+# ==============================================================================
+
+@draccus.wrap()
+def train_cl_lora(cfg: TrainCLConfig) -> None:
+    assert cfg.use_l1_regression or cfg.use_diffusion, "Must use L1 regression or diffusion action head."
+    assert cfg.max_steps > 0, f"max_steps must be > 0, got {cfg.max_steps}"
+
+    cfg.vla_path = cfg.vla_path.rstrip("/")
+    print(f"CL-LoRA Training | Stage {cfg.stage} | Dataset: {cfg.dataset_name}")
+    print(f"  KD: {cfg.use_kd} (λ={cfg.lambda_kd}) | Replay: {cfg.use_replay} (λ={cfg.replay_loss_weight})")
+
+    run_id = get_run_id(cfg)
+    run_dir = cfg.run_root_dir / run_id
+    os.makedirs(run_dir, exist_ok=True)
+
+    # ---- GPU setup ----
+    distributed_state = PartialState()
+    device_id = distributed_state.local_process_index
+    torch.cuda.set_device(device_id)
+    torch.cuda.empty_cache()
+
+    if distributed_state.is_main_process:
+        wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=f"cl+{run_id}")
+
+    print(
+        "Detected constants:\n"
+        f"\tNUM_ACTIONS_CHUNK: {NUM_ACTIONS_CHUNK}\n"
+        f"\tACTION_DIM: {ACTION_DIM}\n"
+        f"\tPROPRIO_DIM: {PROPRIO_DIM}\n"
+        f"\tACTION_PROPRIO_NORMALIZATION_TYPE: {ACTION_PROPRIO_NORMALIZATION_TYPE}"
+    )
+
+    # ---- Model loading ----
+    if model_is_on_hf_hub(cfg.vla_path):
+        vla_download_path = snapshot_download(repo_id=cfg.vla_path)
+        cfg.vla_path = vla_download_path
+    else:
+        AutoConfig.register("openvla", OpenVLAConfig)
+        AutoImageProcessor.register(OpenVLAConfig, PrismaticImageProcessor)
+        AutoProcessor.register(OpenVLAConfig, PrismaticProcessor)
+        AutoModelForVision2Seq.register(OpenVLAConfig, OpenVLAForActionPrediction)
+
+    if distributed_state.is_main_process:
+        update_auto_map(cfg.vla_path)
+        check_model_logic_mismatch(cfg.vla_path)
+    dist.barrier()
+
+    processor = AutoProcessor.from_pretrained(cfg.vla_path, trust_remote_code=True)
+    vla = AutoModelForVision2Seq.from_pretrained(
+        cfg.vla_path,
+        torch_dtype=torch.bfloat16,
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
+    ).to(device_id)
+
+    vla.vision_backbone.set_num_images_in_input(cfg.num_images_in_input)
+
+    # ---- CL-LoRA injection ----
+    if cfg.use_cl_lora:
+        total_layers = 32
+        injected_layers = total_layers - cfg.first_lora_layer
+        if injected_layers <= 0:
+            raise ValueError(f"first_lora_layer={cfg.first_lora_layer} >= total_layers={total_layers}")
+        shared_split_ratio = max(1, cfg.shared_depth) / injected_layers
+        vla = inject_cl_lora_into_model(
+            vla,
+            rank=cfg.lora_rank,
+            alpha=cfg.lora_rank,
+            dropout=cfg.lora_dropout,
+            shared_split_ratio=shared_split_ratio,
+            orthogonal_init=cfg.orthogonal_init,
+            freeze_a=cfg.freeze_a,
+            use_block_scale=cfg.use_block_scale,
+            first_lora_layer=cfg.first_lora_layer,
+        )
+        print(f"[CL-LoRA] Injected {injected_layers} layers (L{cfg.first_lora_layer}-31), shared_depth={cfg.shared_depth}, rank={cfg.lora_rank}")
+
+        # ---- PI 冻结原则：冻结所有主干，仅保留 LoRA + action_head 可训 ----
+        # Freeze ALL parameters first, then selectively unfreeze LoRA params
+        for name, param in vla.named_parameters():
+            param.requires_grad = False
+        # Unfreeze only LoRA params and block_scale
+        for name, param in vla.named_parameters():
+            if any(x in name for x in ['lora_a', 'lora_b', 'block_scale']):
+                # Respect the per-layer freeze_a setting (lora_a may still be frozen in shared layers)
+                if hasattr(param, '_frozen_by_cl_lora'):
+                    continue
+                param.requires_grad = True
+        # PI: shared A trainable in Stage 1, frozen by freeze_stage1_params after
+
+        lora_trainable = sum(p.numel() for p in vla.parameters() if p.requires_grad)
+        print(f"[CL-LoRA] LoRA trainable params after freeze: {lora_trainable:,}")
+
+    # ---- Load previous stage checkpoint (sequential training) ----
+    if cfg.previous_checkpoint_dir is not None:
+        prev_dir = cfg.previous_checkpoint_dir
+        prev_step = cfg.previous_checkpoint_step or cfg.max_steps
+        print(f"[Stage {cfg.stage}] Loading previous checkpoint from {prev_dir} (step {prev_step})")
+
+        # Load CL-LoRA adapter weights from previous stage (transfer specific A/B)
+        if cfg.use_cl_lora:
+            prev_adapter_path = os.path.join(prev_dir, "cl_lora_adapter.pt")
+            if os.path.exists(prev_adapter_path):
+                prev_adapter = torch.load(prev_adapter_path, map_location="cpu")
+                missing, unexpected = vla.load_state_dict(prev_adapter, strict=False)
+                print(f"[Stage {cfg.stage}] Loaded {len(prev_adapter)} CL-LoRA params from previous stage "
+                      f"(missing keys: {len(missing)}, unexpected: {len(unexpected)})")
+            else:
+                print(f"[Stage {cfg.stage}] WARNING: cl_lora_adapter.pt not found at {prev_adapter_path}")
+
+        # Load action_head
+        if cfg.use_l1_regression or cfg.use_diffusion:
+            ah_state = load_checkpoint("action_head", prev_dir, prev_step)
+            _pending_action_head_state = ah_state
+        else:
+            _pending_action_head_state = None
+        # Load vision_backbone if FiLM
+        _pending_vision_state = None
+        if cfg.use_film:
+            _pending_vision_state = load_checkpoint("vision_backbone", prev_dir, prev_step)
+    else:
+        _pending_action_head_state = None
+        _pending_vision_state = None
+
+    # ---- PI Task Bank: freeze shared knowledge, reinit bank for new task ----
+    if cfg.use_cl_lora and cfg.stage > 1 and cfg.previous_checkpoint_dir is not None and not cfg.skip_reinit:
+        freeze_stage1_params(vla, freeze_specific_a=cfg.freeze_specific_a,
+                             freeze_shared=cfg.freeze_shared)
+        reinit_bank_for_new_task(vla, freeze_shared=cfg.freeze_shared)
+        # 注意: "按层保护量"掩码不能在这里应用 —— action_head 此时尚未创建,
+        # 且动作头稍后还会做自己的 freeze/reinit 会覆盖设置。真正的应用点见下面
+        # "Action head" 段落中 stage>1 冻结之后。
+        lora_trainable = sum(p.numel() for p in vla.parameters() if p.requires_grad)
+        print(f"[TaskBank] Stage {cfg.stage} trainable after freeze+reinit: {lora_trainable:,}")
+
+    # ---- FiLM ----
+    film_anchor_sd = None  # 锚定正则目标 (Stage1 A 的 FiLM 权重)
+    if cfg.use_film:
+        count_parameters(vla.vision_backbone, "vla.vision_backbone (original)")
+        vla.vision_backbone = FiLMedPrismaticVisionBackbone(
+            vision_backbone=vla.vision_backbone,
+            llm_dim=vla.llm_dim,
+        )
+        count_parameters(vla.vision_backbone, "vla.vision_backbone (post-wrap)")
+        if _pending_vision_state is not None:
+            vla.vision_backbone.load_state_dict(_pending_vision_state)
+        vla.vision_backbone = vla.vision_backbone.to(device_id)
+
+        # 锚定正则目标: Stage1(A) 的 FiLM 权重, 训练循环里每步 L2 拉回
+        if cfg.film_anchor_reg > 0.0 and cfg.stage > 1 and cfg.film_anchor_dir is not None:
+            film_anchor_sd = load_checkpoint(
+                "vision_backbone", cfg.film_anchor_dir, cfg.film_anchor_step or 30000)
+            print(f"[FiLM] 锚定正则开启: λ={cfg.film_anchor_reg}, "
+                  f"anchor={cfg.film_anchor_dir} (step {cfg.film_anchor_step or 30000})")
+
+        # ===== 方案 A (可选): Stage>1 冻结 FiLM =====
+        # FiLM (~450M) 不在 task bank 里, Stage 2+ 继续训练会让旧任务视觉特征错位。
+        # 默认 False = 漂移版 (v39 原版行为, 作为"无回放低残留基线");
+        # 传 --freeze_film_stage2 True = 冻结版 (视觉特征恒定, 高保留)。
+        if cfg.stage > 1 and cfg.freeze_film_stage2:
+            for p in vla.vision_backbone.parameters():
+                p.requires_grad = False
+            print("[FiLM] Stage>1: vision_backbone (含 FiLM) 已冻结, 视觉特征恒定")
+            count_parameters(vla.vision_backbone, "vla.vision_backbone (frozen)")
+
+    # ---- DDP ----
+    vla = wrap_ddp(vla, device_id, find_unused=True)
+
+    # ---- Proprio projector ----
+    proprio_projector = None
+    if cfg.use_proprio:
+        proprio_projector = ProprioProjector(
+            llm_dim=vla.module.llm_dim,
+            proprio_dim=PROPRIO_DIM,
+        ).to(torch.bfloat16).to(device_id)
+        # 修复: stage 2+ 从上一阶段加载 proprio (与 FiLM 同理)。
+        # 此前每次训练随机初始化 → 各 stage 投影不同 → 旧任务评估时 proprio 输入
+        # 错位 → 依赖 proprio 的视觉敏感任务 (C) 归零 (即使 FiLM/bank 全一致)。
+        if cfg.previous_checkpoint_dir is not None:
+            pp_file = os.path.join(
+                cfg.previous_checkpoint_dir,
+                f"proprio_projector--{cfg.previous_checkpoint_step}_checkpoint.pt")
+            if os.path.exists(pp_file):
+                pp_sd = torch.load(pp_file, map_location="cpu", weights_only=True)
+                proprio_projector.load_state_dict(pp_sd)
+                print(f"[Proprio] Loaded proprio_projector from {pp_file}")
+        proprio_projector = wrap_ddp(proprio_projector, device_id)
+        count_parameters(proprio_projector, "proprio_projector")
+
+    # ---- Action head ----
+    action_head = None
+    if cfg.use_l1_regression:
+        action_head = L1RegressionActionHead(
+            input_dim=vla.module.llm_dim,
+            hidden_dim=vla.module.llm_dim,
+            action_dim=ACTION_DIM,
+        ).to(torch.bfloat16).to(device_id)
+        # PI-aligned: inject CL-LoRA into action_head Linear layers
+        if cfg.use_cl_lora:
+            action_head = inject_cl_lora_into_action_head(
+                action_head,
+                rank=cfg.lora_rank,
+                alpha=cfg.lora_rank,
+                orthogonal_init=cfg.orthogonal_init,
+                freeze_a=cfg.freeze_a,
+                use_block_scale=cfg.use_block_scale,
+            )
+            # Freeze base Linear weights, unfreeze LoRA params
+            for p in action_head.parameters():
+                p.requires_grad = False
+            for n, p in action_head.named_parameters():
+                if any(x in n for x in ['lora_a', 'lora_b', 'block_scale']):
+                    p.requires_grad = True
+            count_parameters(action_head, "action_head (CL-LoRA)")
+        # For Stage 2+: freeze specific A in action_head and reinit B
+        if cfg.use_cl_lora and cfg.stage > 1:
+            freeze_stage1_params(action_head, freeze_specific_a=cfg.freeze_specific_a,
+                                 freeze_shared=cfg.freeze_shared)
+            reinit_bank_for_new_task(action_head, freeze_shared=cfg.freeze_shared)
+            # ---- "按层保护量"旋钮：必须在这里应用（vla 与 action_head 均已就绪，
+            #      且动作头自己的 freeze/reinit 已执行完，不会再被覆盖）----
+            if not cfg.freeze_specific_a and cfg.specific_a_trainable_layers.strip():
+                keep = parse_layer_spec(cfg.specific_a_trainable_layers,
+                                        lo=cfg.first_lora_layer + cfg.shared_depth, hi=31)
+                n_frozen, n_train = apply_specific_a_layer_mask(
+                    vla, action_head, trainable_layers=keep,
+                    freeze_action_head_a=cfg.specific_a_freeze_action_head,
+                    action_head_keep=cfg.specific_a_action_head_keep)
+                llm_desc = ("全部" if keep is None else
+                            ("无(全冻)" if len(keep) == 0 else str(sorted(keep))))
+                ah_desc = (cfg.specific_a_action_head_keep.strip() or
+                           ("冻结" if cfg.specific_a_freeze_action_head else "解冻"))
+                print(f"[LayerMask] specific-A 分级保护: 解冻 {n_train} 个模块 / 冻结 {n_frozen} 个"
+                      f"（LLM 解冻层={llm_desc} | 动作头A={ah_desc}）")
+        if _pending_action_head_state is not None:
+            action_head.load_state_dict(_pending_action_head_state, strict=False)
+        action_head = wrap_ddp(action_head, device_id)
+
+    noisy_action_projector = None
+    if cfg.use_diffusion:
+        raise NotImplementedError("Diffusion not yet implemented for CL-LoRA. Set --use_l1_regression=True.")
+
+    # ---- Teacher snapshot ----
+    teacher_snapshot = None
+    if cfg.use_kd:
+        if cfg.teacher_checkpoint_dir is not None:
+            teacher_path = cfg.teacher_checkpoint_dir
+            if cfg.teacher_checkpoint_step is not None:
+                teacher_path = os.path.join(teacher_path, f"teacher_snapshot--{cfg.teacher_checkpoint_step}.pt")
+            elif os.path.isdir(teacher_path):
+                # Auto-discover latest snapshot
+                snapshots = sorted([f for f in os.listdir(teacher_path) if f.startswith("teacher_snapshot--")])
+                if snapshots:
+                    teacher_path = os.path.join(teacher_path, snapshots[-1])
+            teacher_snapshot = load_teacher_snapshot(teacher_path)
+            print(f"[KD] Loaded teacher snapshot with {len(teacher_snapshot)} tensors")
+        else:
+            print("[KD] WARNING: use_kd=True but no teacher_checkpoint_dir specified. KD will be skipped.")
+
+    # ---- NUM_PATCHES ----
+    NUM_PATCHES = vla.module.vision_backbone.get_num_patches() * vla.module.vision_backbone.get_num_images_in_input()
+    if cfg.use_proprio:
+        NUM_PATCHES += 1
+    if cfg.use_diffusion:
+        NUM_PATCHES += 1
+
+    # ---- Optimizer ----
+    trainable_params = [p for p in vla.parameters() if p.requires_grad]
+    if action_head is not None: #动作头参数
+        trainable_params += [p for p in action_head.parameters() if p.requires_grad]
+    print(f"# total trainable params: {sum(p.numel() for p in trainable_params)}") #可训参数总量
+    if cfg.use_film and cfg.film_lr_scale < 1.0:
+        # 分层学习率: FiLM (vision_backbone 的可训练参数) 用更低 lr —— 控制"漂移力度"
+        # 无回放基线里, 这是把旧任务残留从"极端遗忘(0)"调回"少量残留(0.2左右)"的旋钮
+        # FiLM 每步用语言嵌入调制视觉特征，训练中持续变化会让旧任务的视觉特征错位，是视觉敏感任务遗忘的主因。把 FiLM 的学习率压低 = 减慢漂移力度。
+        vb_param_ids = set(id(p) for p in vla.module.vision_backbone.parameters())
+        main_params = [p for p in trainable_params if id(p) not in vb_param_ids]# LoRA 参数 + 动作头参数
+        film_params = [p for p in trainable_params if id(p) in vb_param_ids]#vision_backbone 里可训的（FiLM scale/shift 的权重和偏置）
+        groups = [{"params": main_params, "lr": cfg.learning_rate},
+                  {"params": film_params, "lr": cfg.learning_rate * cfg.film_lr_scale}]
+        print(f"[Optimizer] FiLM 分层 lr: 主干 {cfg.learning_rate:.1e}, "
+              f"FiLM {cfg.learning_rate * cfg.film_lr_scale:.1e} (scale={cfg.film_lr_scale})")
+    else:
+        groups = [{"params": trainable_params, "lr": cfg.learning_rate}]
+
+    # 解冻 shared A/B 时支持单独缩放 lr（连续可调"共享通路漂移"剂量）
+    if not cfg.freeze_shared:
+        sh_ids = shared_param_ids(vla.module)
+        sh_params = [p for p in trainable_params if id(p) in sh_ids]
+        need = cfg.shared_lr_scale != 1.0
+        if sh_params and need:
+            # 从已有组里摘掉 shared 参数, 再单独成组
+            for g in groups:
+                g["params"] = [p for p in g["params"] if id(p) not in sh_ids]
+            groups = [g for g in groups if g["params"]] + \
+                     [{"params": sh_params, "lr": cfg.learning_rate * cfg.shared_lr_scale}]
+            print(f"[Optimizer] shared A/B 已解冻 {len(sh_params)} 个张量, "
+                  f"lr={cfg.learning_rate * cfg.shared_lr_scale:.1e} (scale={cfg.shared_lr_scale})")
+        elif sh_params:
+            print(f"[Optimizer] ⚠️ shared A/B 已解冻 {len(sh_params)} 个张量, "
+                  f"使用主干 lr={cfg.learning_rate:.1e}（无 bank 可恢复 ⇒ 所有旧任务都会受影响）")
+
+    # "部分解冻" specific-A: 单独缩放 lr（探 A 漂移阈值 / 控制解冻量）
+    if not cfg.freeze_specific_a and cfg.specific_a_lr_scale != 1.0:
+        sa_ids = specific_a_param_ids(vla.module,
+                                      action_head.module if action_head is not None else None)
+        sa_params = [p for p in trainable_params if id(p) in sa_ids]
+        if sa_params:
+            for g in groups:
+                g["params"] = [p for p in g["params"] if id(p) not in sa_ids]
+            groups = [g for g in groups if g["params"]] + \
+                     [{"params": sa_params, "lr": cfg.learning_rate * cfg.specific_a_lr_scale}]
+            print(f"[Optimizer] specific-A 部分解冻 {len(sa_params)} 个张量, "
+                  f"lr={cfg.learning_rate * cfg.specific_a_lr_scale:.1e} (scale={cfg.specific_a_lr_scale})")
+    elif not cfg.freeze_specific_a:
+        print(f"[Optimizer] ⚠️ specific-A 全速可训练（lr={cfg.learning_rate:.1e}, "
+              f"bank {'含' if cfg.bank_save_specific_a else '不含'} A 快照）")
+    optimizer = AdamW(groups)
+    original_lr = optimizer.param_groups[0]["lr"]
+    scheduler = MultiStepLR(optimizer, milestones=[cfg.num_steps_before_decay], gamma=0.1)
+
+    # ---- Action tokenizer & data ----
+    action_tokenizer = ActionTokenizer(processor.tokenizer)
+    use_wrist_image = cfg.num_images_in_input > 1
+
+    batch_transform = RLDSBatchTransform(
+        action_tokenizer, processor.tokenizer,
+        image_transform=processor.image_processor.apply_transform,
+        prompt_builder_fn=PurePromptBuilder,
+        use_wrist_image=use_wrist_image,
+        use_proprio=cfg.use_proprio,
+    )
+    train_dataset = RLDSDataset(
+        cfg.data_root_dir, cfg.dataset_name, batch_transform,
+        resize_resolution=tuple(vla.module.config.image_sizes),
+        shuffle_buffer_size=cfg.shuffle_buffer_size,
+        image_aug=cfg.image_aug,
+    )
+
+    if distributed_state.is_main_process:
+        save_dataset_statistics(_merge_previous_stats(cfg, train_dataset.dataset_statistics), run_dir)
+
+    collator = PaddedCollatorForActionPrediction(
+        processor.tokenizer.model_max_length, processor.tokenizer.pad_token_id, padding_side="right"
+    )
+    dataloader = DataLoader(
+        train_dataset,
+        batch_size=cfg.batch_size,
+        sampler=None,
+        collate_fn=collator,
+        num_workers=0,
+    )
+
+    # ---- Replay loaders ----
+    replay_loaders, replay_iters = _build_replay_loaders(cfg, batch_transform)
+
+    # ---- Metrics tracking ----
+    recent_metrics = {
+        "loss_value": deque(maxlen=cfg.grad_accumulation_steps),
+        "loss_task": deque(maxlen=cfg.grad_accumulation_steps),
+        "loss_kd": deque(maxlen=cfg.grad_accumulation_steps),
+        "loss_replay": deque(maxlen=cfg.grad_accumulation_steps),
+        "loss_anchor": deque(maxlen=cfg.grad_accumulation_steps),
+    }
+
+    # ---- Training loop ----
+    with tqdm.tqdm(total=cfg.max_steps, leave=True) as progress:
+        vla.train() #
+        if action_head is not None:
+            action_head.train()
+        optimizer.zero_grad() #
+
+        for batch_idx, batch in enumerate(dataloader):
+          #batch_idx每从数据管线取一个 batch 就 +1，每grad_accumulation_steps个batch_idx  gradient_step_idx+1，默认grad_accumulation_steps=1
+            gradient_step_idx = batch_idx // cfg.grad_accumulation_steps#把 micro-batch 序号换算成梯度步序号。例如 grad_accumulation_steps=4：batch 0–3 → 梯度步 0，batch 4–7 → 梯度步 1……
+            log_step = gradient_step_idx
+
+            # 1. Current task forward pass = 拿当前任务的一个 batch，跑一遍学生模型，在连续动作空间算出 L1 损失，并把学生预测（带梯度）交给下一步 KD。
+            compute_diffusion_l1 = cfg.use_diffusion and batch_idx % cfg.diffusion_sample_freq == 0
+            loss_task, metrics, student_pred, _ = run_forward_pass_extended(
+                vla=vla, action_head=action_head,
+                noisy_action_projector=noisy_action_projector,
+                proprio_projector=proprio_projector,
+                batch=batch, action_tokenizer=action_tokenizer,
+                device_id=device_id,
+                use_l1_regression=cfg.use_l1_regression,
+                use_diffusion=cfg.use_diffusion,
+                use_proprio=cfg.use_proprio,
+                use_film=cfg.use_film,
+                num_patches=NUM_PATCHES,
+                compute_diffusion_l1=compute_diffusion_l1,
+                num_diffusion_steps_train=cfg.num_diffusion_steps_train if cfg.use_diffusion else None,
+                return_predictions=True,
+            )
+
+            # 2. KD loss (student_pred still has gradients; teacher runs with frozen params via swap)
+            loss_kd = torch.tensor(0.0, device=device_id)
+            if cfg.use_kd and teacher_snapshot is not None and student_pred is not None:
+                student_copy = swap_to_teacher(vla.module, action_head.module if action_head is not None else None, teacher_snapshot, device_id)
+                with torch.no_grad():
+                    _, _, teacher_pred, _ = run_forward_pass_extended(
+                        vla=vla, action_head=action_head,
+                        noisy_action_projector=noisy_action_projector,
+                        proprio_projector=proprio_projector,
+                        batch=batch, action_tokenizer=action_tokenizer,
+                        device_id=device_id,
+                        use_l1_regression=cfg.use_l1_regression,
+                        use_diffusion=cfg.use_diffusion,
+                        use_proprio=cfg.use_proprio,
+                        use_film=cfg.use_film,
+                        num_patches=NUM_PATCHES,
+                        compute_diffusion_l1=False,
+                        num_diffusion_steps_train=None,
+                        return_predictions=True,
+                    )
+                restore_student(vla.module, action_head.module if action_head is not None else None, student_copy)
+                if teacher_pred is not None:
+                    loss_kd = F.mse_loss(student_pred, teacher_pred.detach())
+
+            # 3. Replay loss
+            loss_replay = torch.tensor(0.0, device=device_id)
+            metrics["loss_replay"] = 0.0
+            if cfg.use_replay and replay_iters is not None:
+                use_replay_this_step = (log_step % cfg.replay_every_n_steps == 0)
+                if use_replay_this_step:
+                    replay_batch = _next_replay_batch(replay_iters, replay_loaders, cfg.replay_sample_strategy)
+                    loss_replay, replay_metrics, _, _ = run_forward_pass_extended(
+                        vla=vla, action_head=action_head,
+                        noisy_action_projector=noisy_action_projector,
+                        proprio_projector=proprio_projector,
+                        batch=replay_batch, action_tokenizer=action_tokenizer,
+                        device_id=device_id,
+                        use_l1_regression=cfg.use_l1_regression,
+                        use_diffusion=cfg.use_diffusion,
+                        use_proprio=cfg.use_proprio,
+                        use_film=cfg.use_film,
+                        num_patches=NUM_PATCHES,
+                        compute_diffusion_l1=False,
+                        num_diffusion_steps_train=None,
+                        return_predictions=False,
+                    )
+                    metrics["loss_replay"] = loss_replay.item()
+
+            # 4. Total loss
+            loss_total = loss_task + cfg.lambda_kd * loss_kd + cfg.replay_loss_weight * loss_replay
+
+            # 5. FiLM 锚定正则 (保底方案): 把 FiLM 拉向 Stage1(A) 的值, λ 连续可调漂移量
+            #    低 lr 是"走得慢但持续走"(A 容不下); 锚定是"走远了被拉回"(λ 大时 FiLM 贴住 A)
+            #    → A/C 这类零容忍任务才能留下可控残留(0.2 附近可调)
+            loss_anchor = torch.tensor(0.0, device=device_id)
+            if cfg.film_anchor_reg > 0.0 and film_anchor_sd is not None:
+                reg_sum = 0.0
+                reg_cnt = 0
+                for n, p in vla.module.vision_backbone.named_parameters():
+                    if p.requires_grad and n in film_anchor_sd:
+                        reg_sum = reg_sum + F.mse_loss(p.float(), film_anchor_sd[n].to(p.device).float())
+                        reg_cnt += 1
+                if reg_cnt > 0:
+                    loss_anchor = reg_sum / reg_cnt
+                    loss_total = loss_total + cfg.film_anchor_reg * loss_anchor
+            metrics["loss_anchor"] = loss_anchor.item()
+
+            # Store metrics
+            metrics["loss_task"] = loss_task.item()
+            metrics["loss_kd"] = loss_kd.item() if isinstance(loss_kd, torch.Tensor) else loss_kd
+            for name in recent_metrics:
+                if name in metrics:
+                    recent_metrics[name].append(metrics[name])
+
+            # Backward
+            normalized_loss = loss_total / cfg.grad_accumulation_steps
+            normalized_loss.backward()
+
+            # Optimizer step
+            if (batch_idx + 1) % cfg.grad_accumulation_steps == 0:
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                progress.update()
+                # Live metrics on progress bar
+                smoothened = compute_smoothened_metrics(recent_metrics)
+                postfix = {"loss": f"{smoothened.get('loss_value', 0):.4f}"}
+                if cfg.use_kd:
+                    postfix["kd"] = f"{smoothened.get('loss_kd', 0):.4f}"
+                if cfg.use_replay:
+                    postfix["rep"] = f"{smoothened.get('loss_replay', 0):.4f}"
+                progress.set_postfix(postfix)
+
+            # LR warmup
+            if cfg.lr_warmup_steps > 0:
+                lr_progress = min((gradient_step_idx + 1) / cfg.lr_warmup_steps, 1.0)
+                current_lr = original_lr * (0.1 + 0.9 * lr_progress)
+                for param_group in optimizer.param_groups:
+                    param_group["lr"] = current_lr
+
+            # Logging
+            smoothened = compute_smoothened_metrics(recent_metrics)
+            if distributed_state.is_main_process and log_step % cfg.wandb_log_freq == 0:
+                log_metrics_to_wandb(smoothened, "CL Train", log_step, wandb)
+                wandb.log({"CL Train/Learning Rate": scheduler.get_last_lr()[0]}, step=log_step)
+
+            # Checkpoint
+            if gradient_step_idx > 0 and log_step % cfg.save_freq == 0:
+                if distributed_state.is_main_process:
+                    checkpoint_dir = run_dir if cfg.save_latest_checkpoint_only else Path(str(run_dir) + f"--{log_step}_chkpt")
+                    checkpoint_dir = Path(checkpoint_dir)
+                    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+                    processor.save_pretrained(checkpoint_dir)
+
+                    # Save CL-LoRA config (for eval alignment)
+                    import json as _json
+                    cl_config = {
+                        "lora_rank": cfg.lora_rank,
+                        "alpha": cfg.lora_rank,
+                        "shared_split_ratio": max(1, cfg.shared_depth) / max(1, 32 - cfg.first_lora_layer),
+                        "shared_depth": cfg.shared_depth,
+                        "orthogonal_init": cfg.orthogonal_init,
+                        "freeze_a": cfg.freeze_a,
+                        "use_block_scale": cfg.use_block_scale,
+                        "first_lora_layer": cfg.first_lora_layer,
+                    }
+                    with open(checkpoint_dir / "cl_lora_config.json", "w") as _f:
+                        _json.dump(cl_config, _f)
+
+                    # Save CL-LoRA adapter (trainable params only)
+                    cl_lora_state = {k: v.cpu() for k, v in vla.module.state_dict().items() if any(x in k for x in ['lora_a', 'lora_b', 'block_scale'])}
+                    torch.save(cl_lora_state, checkpoint_dir / "cl_lora_adapter.pt")
+
+                    # Save action head
+                    if action_head is not None:
+                        torch.save(action_head.module.state_dict(), checkpoint_dir / f"action_head--{log_step}_checkpoint.pt")
+
+                    # Save proprio projector
+                    if proprio_projector is not None:
+                        torch.save(proprio_projector.module.state_dict(), checkpoint_dir / f"proprio_projector--{log_step}_checkpoint.pt")
+
+                    # Save vision backbone (FiLM params)
+                    if cfg.use_film:
+                        torch.save(vla.module.vision_backbone.state_dict(), checkpoint_dir / f"vision_backbone--{log_step}_checkpoint.pt")
+
+                    # Save teacher snapshot (for next stage)
+                    save_teacher_snapshot(vla.module, action_head.module if action_head is not None else None, checkpoint_dir, log_step)
+
+                    # Save dataset statistics (merged with previous tasks' stats)
+                    save_dataset_statistics(_merge_previous_stats(cfg, train_dataset.dataset_statistics), checkpoint_dir)
+
+                    # Save task bank for this stage (useful for resumed training)
+                    if cfg.use_cl_lora:
+                        save_task_bank(vla.module,
+                                       action_head.module if action_head is not None else None,
+                                       str(checkpoint_dir), cfg.stage,
+                                       film_mode=cfg.bank_film_mode,
+                                       save_specific_a=cfg.bank_save_specific_a)
+
+                    print(f"Checkpoint saved at step {log_step} → {checkpoint_dir}")
+
+                dist.barrier()
+
+            if gradient_step_idx > 0 and log_step >= cfg.max_steps:
+                print(f"Max step {cfg.max_steps} reached! Stopping...")
+                break
+
+    # ---- Final save ----
+    if distributed_state.is_main_process:
+        final_dir = run_dir if cfg.save_latest_checkpoint_only else Path(str(run_dir) + f"--{cfg.max_steps}_chkpt")
+        final_dir = Path(final_dir)
+        final_dir.mkdir(parents=True, exist_ok=True)
+        # Save CL-LoRA config
+        import json as _json
+        cl_config = {
+            "lora_rank": cfg.lora_rank,
+            "alpha": cfg.lora_rank,
+            "shared_split_ratio": max(1, cfg.shared_depth) / max(1, 32 - cfg.first_lora_layer),
+            "shared_depth": cfg.shared_depth,
+            "orthogonal_init": cfg.orthogonal_init,
+            "freeze_a": cfg.freeze_a,
+            "use_block_scale": cfg.use_block_scale,
+            "first_lora_layer": cfg.first_lora_layer,
+        }
+        with open(final_dir / "cl_lora_config.json", "w") as _f:
+            _json.dump(cl_config, _f)
+        processor.save_pretrained(final_dir)
+        cl_lora_state = {k: v.cpu() for k, v in vla.module.state_dict().items() if any(x in k for x in ['lora_a', 'lora_b', 'block_scale'])}
+        torch.save(cl_lora_state, final_dir / "cl_lora_adapter.pt")
+        if action_head is not None:
+            torch.save(action_head.module.state_dict(), final_dir / f"action_head--{cfg.max_steps}_checkpoint.pt")
+        if proprio_projector is not None:
+            torch.save(proprio_projector.module.state_dict(), final_dir / f"proprio_projector--{cfg.max_steps}_checkpoint.pt")
+        if cfg.use_film:
+            torch.save(vla.module.vision_backbone.state_dict(), final_dir / f"vision_backbone--{cfg.max_steps}_checkpoint.pt")
+        save_teacher_snapshot(vla.module, action_head.module if action_head is not None else None, final_dir, cfg.max_steps)
+        save_dataset_statistics(_merge_previous_stats(cfg, train_dataset.dataset_statistics), final_dir)
+        print(f"Final checkpoint saved → {final_dir}")
+
+    # PI Task Bank: freeze after Stage 1, save bank each stage, copy old banks forward
+    if cfg.use_cl_lora and distributed_state.is_main_process:
+        if cfg.stage == 1:
+            freeze_stage1_params(vla.module, freeze_specific_a=cfg.freeze_specific_a,
+                                action_head=action_head.module if action_head is not None else None,
+                                freeze_shared=cfg.freeze_shared)
+        # Copy old task banks from previous checkpoint
+        if cfg.previous_checkpoint_dir is not None:
+            import glob as _g; import shutil as _sh
+            for old_bank in _g.glob(os.path.join(cfg.previous_checkpoint_dir, "task_*_bank.pt")):
+                _sh.copy(old_bank, str(final_dir))
+        save_task_bank(vla.module,
+                       action_head.module if action_head is not None else None,
+                       str(final_dir), cfg.stage,
+                       film_mode=cfg.bank_film_mode,
+                       save_specific_a=cfg.bank_save_specific_a)
+        print(f"[TaskBank] Stage {cfg.stage} bank saved to checkpoint")
+
+    dist.barrier()
+    print("CL-LoRA training complete.")
+    if dist.is_initialized():
+        dist.destroy_process_group()
+
+
+if __name__ == "__main__":
+    train_cl_lora()

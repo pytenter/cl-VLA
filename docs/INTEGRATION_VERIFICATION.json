@@ -1,0 +1,77 @@
+{
+  "status": "passed",
+  "scope": "Main integration source retention, environment dispatch/isolation, ignore and documentation checks; no training or model imports",
+  "source_branch_heads": {
+    "origin/main": "ff19c49828b7e4e9b5b18cc2671cb0e72232ea31",
+    "origin/pi0.5": "4ece60ce9ea12b953dced4c427368b7cc646d3fd",
+    "origin/openvla": "6988dfa1e95eb23581d7ac0d8ebb28082820077a"
+  },
+  "protected_source_and_result_files": 786,
+  "profiles": [
+    {
+      "profile": "libero-fourway",
+      "family": "pi05",
+      "first_module_path": "experiments/libero_fourway",
+      "module_origin": "pi05/src/openpi/__init__.py",
+      "passed": true
+    },
+    {
+      "profile": "libero-plain-prototype",
+      "family": "pi05",
+      "first_module_path": "experiments/libero_plain_prototype",
+      "module_origin": "pi05/src/openpi/__init__.py",
+      "passed": true
+    },
+    {
+      "profile": "kinova",
+      "family": "pi05",
+      "first_module_path": "experiments/kinova",
+      "module_origin": "pi05/src/openpi/__init__.py",
+      "passed": true
+    },
+    {
+      "profile": "openvla-libero",
+      "family": "openvla",
+      "first_module_path": "openvla-oft",
+      "module_origin": "openvla-oft/prismatic/__init__.py",
+      "passed": true
+    },
+    {
+      "profile": "openvla-robotwin",
+      "family": "openvla",
+      "first_module_path": "RoboTwin-main/policy/openvla-oft",
+      "module_origin": "RoboTwin-main/policy/openvla-oft/prismatic/__init__.py",
+      "passed": true
+    },
+    {
+      "profile": "libero",
+      "family": "openvla",
+      "first_module_path": "openvla-oft",
+      "module_origin": "openvla-oft/prismatic/__init__.py",
+      "passed": true
+    },
+    {
+      "profile": "robotwin",
+      "family": "openvla",
+      "first_module_path": "RoboTwin-main/policy/openvla-oft",
+      "module_origin": "RoboTwin-main/policy/openvla-oft/prismatic/__init__.py",
+      "passed": true
+    }
+  ],
+  "checks": {
+    "cross_profile_switch_refused_without_path_mutation": true,
+    "unknown_profile_refused": true,
+    "executing_instead_of_sourcing_refused": true,
+    "legacy_server_entry_still_selects_OpenVLA": true,
+    "future_model_code_and_result_metadata_not_ignored": true,
+    "all_model_source_and_results_byte_identical_to_model_branches": true,
+    "all_relative_Markdown_links_resolve": true,
+    "all_shell_syntax_passed": true
+  },
+  "ignore_rule_cases": 13,
+  "shell_files_checked": 55,
+  "known_OpenVLA_models_missing": true,
+  "documentation_link_fix": [
+    "pi05/docs/remote_inference.md: corrected relative example link; model code unchanged"
+  ]
+}

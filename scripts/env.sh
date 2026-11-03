@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
-# Source from an installed Python3.11 environment. Use a fresh shell per profile.
-_CL_VLA_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-export CL_VLA_REPO_ROOT="$_CL_VLA_ROOT"
-export PI05_DEPLOY_ROOT="${PI05_DEPLOY_ROOT:-$_CL_VLA_ROOT/.local/runtime}"
-export PI05_BASE_PARAMS="${PI05_BASE_PARAMS:-$PI05_DEPLOY_ROOT/models/pi05_base/params}"
-export PI05_PYTHON="${PI05_PYTHON:-$(command -v python3)}"
-export PI05_LIBERO_FOURWAY_ROOT="${PI05_LIBERO_FOURWAY_ROOT:-$_CL_VLA_ROOT/.local/runs/libero_fourway}"
-export PI05_LIBERO_REFERENCE_ROOT="${PI05_LIBERO_REFERENCE_ROOT:-$PI05_LIBERO_FOURWAY_ROOT}"
-export PI05_LIBERO_PLAIN_ROOT="${PI05_LIBERO_PLAIN_ROOT:-$_CL_VLA_ROOT/.local/runs/libero_plain_prototype}"
-export KINOVA_CANDIDATE_ROOT="${KINOVA_CANDIDATE_ROOT:-$_CL_VLA_ROOT/.local/data/kinova_candidate}"
-export KINOVA_EXPERIMENT_ROOT="${KINOVA_EXPERIMENT_ROOT:-$_CL_VLA_ROOT/.local/runs/kinova}"
-export CL_VLA_ARCHIVE_ROOT="${CL_VLA_ARCHIVE_ROOT:-$_CL_VLA_ROOT/.local/archive}"
-export WANDB_MODE=disabled TOKENIZERS_PARALLELISM=false
-export XLA_PYTHON_CLIENT_PREALLOCATE=false
-case "${1:-libero-fourway}" in
-  libero-fourway)
-    export PI05_LIBERO_ROOT="$PI05_LIBERO_FOURWAY_ROOT"
-    _CL_VLA_MODULES="$_CL_VLA_ROOT/experiments/libero_fourway"
-    export HF_LEROBOT_HOME="$PI05_LIBERO_ROOT/datasets";;
-  libero-plain-prototype)
-    export PI05_LIBERO_ROOT="$PI05_LIBERO_PLAIN_ROOT"
-    _CL_VLA_MODULES="$_CL_VLA_ROOT/experiments/libero_plain_prototype"
-    export HF_LEROBOT_HOME="$PI05_LIBERO_ROOT/datasets";;
-  kinova)
-    _CL_VLA_MODULES="$_CL_VLA_ROOT/experiments/kinova"
-    export HF_LEROBOT_HOME="$KINOVA_CANDIDATE_ROOT/lerobot"
-    export XLA_PYTHON_CLIENT_MEM_FRACTION=0.85 XLA_PYTHON_CLIENT_ALLOCATOR=bfc
-    export XLA_FLAGS='--xla_gpu_autotune_level=0 --xla_gpu_deterministic_ops=true'
-    export CUBLAS_WORKSPACE_CONFIG=:4096:8 JAX_DEFAULT_MATMUL_PRECISION=highest PYTHONHASHSEED=42
-    unset XLA_CLIENT_MEM_FRACTION;;
-  *) printf '%s\n' 'Usage: source scripts/env.sh {libero-fourway|libero-plain-prototype|kinova}' >&2; return 2;;
+# Source one profile in a fresh, already activated model environment.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  printf '%s\n' 'Use: source scripts/env.sh <profile>' >&2
+  exit 2
+fi
+_cl_vla_requested="${1:-libero-fourway}"
+case "$_cl_vla_requested" in
+  libero-fourway|pi05-libero-fourway) _cl_vla_profile=libero-fourway; _cl_vla_family=pi05; _cl_vla_arg=libero-fourway;;
+  libero-plain-prototype|pi05-libero-plain-prototype) _cl_vla_profile=libero-plain-prototype; _cl_vla_family=pi05; _cl_vla_arg=libero-plain-prototype;;
+  kinova|pi05-kinova) _cl_vla_profile=kinova; _cl_vla_family=pi05; _cl_vla_arg=kinova;;
+  openvla-libero|libero) _cl_vla_profile=openvla-libero; _cl_vla_family=openvla; _cl_vla_arg=libero;;
+  openvla-robotwin|robotwin) _cl_vla_profile=openvla-robotwin; _cl_vla_family=openvla; _cl_vla_arg=robotwin;;
+  *)
+    printf '%s\n' 'Profiles: libero-fourway | libero-plain-prototype | kinova | openvla-libero | openvla-robotwin' >&2
+    unset _cl_vla_requested
+    return 2;;
 esac
-export PYTHONPATH="$_CL_VLA_MODULES:$_CL_VLA_ROOT/pi05:$_CL_VLA_ROOT/pi05/src:$_CL_VLA_ROOT/pi05/packages/openpi-client/src${PYTHONPATH:+:$PYTHONPATH}"
-export MUJOCO_GL=egl PYOPENGL_PLATFORM=egl
-unset _CL_VLA_ROOT _CL_VLA_MODULES
+if [[ -n "${CL_VLA_ACTIVE_PROFILE:-}" && "$CL_VLA_ACTIVE_PROFILE" != "$_cl_vla_profile" ]]; then
+  printf 'Current profile is %s. Open a fresh terminal and activate the environment for %s.\n' "$CL_VLA_ACTIVE_PROFILE" "$_cl_vla_profile" >&2
+  unset _cl_vla_requested _cl_vla_profile _cl_vla_family _cl_vla_arg
+  return 2
+fi
+_cl_vla_scripts="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "$_cl_vla_family" == pi05 ]]; then
+  source "$_cl_vla_scripts/env_pi05.sh" "$_cl_vla_arg"
+else
+  source "$_cl_vla_scripts/env_openvla.sh" "$_cl_vla_arg"
+fi
+_cl_vla_status=$?
+if [[ "$_cl_vla_status" -ne 0 ]]; then
+  unset _cl_vla_requested _cl_vla_profile _cl_vla_family _cl_vla_arg _cl_vla_scripts
+  return "$_cl_vla_status"
+fi
+export CL_VLA_ACTIVE_PROFILE="$_cl_vla_profile" CL_VLA_ACTIVE_FAMILY="$_cl_vla_family"
+unset _cl_vla_requested _cl_vla_profile _cl_vla_family _cl_vla_arg _cl_vla_scripts _cl_vla_status
