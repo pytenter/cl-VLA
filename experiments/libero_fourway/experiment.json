@@ -1,0 +1,98 @@
+{
+  "description": "Repaired pi0.5 migration of the archive's four-task LIBERO continual-learning experiment; not a claim to reproduce OpenVLA numerical results",
+  "root": "<LIBERO_FOURWAY_ROOT>",
+  "model": "pi05_base",
+  "source_archive_sha256": "5929ad6d02219f97e7182fa1f6739e0c0ff90da7f22598a2035bb70aad1b3363",
+  "dataset_repo": "physical-intelligence/libero",
+  "dataset_revision": "a4336d589d589045d1c56423ffdf3b88a0e19b1f",
+  "simulator_assets_revision": "0b3ea86be5fe169d0fd036ae63d1070ec09e90f6",
+  "groups": [
+    "prototype",
+    "uniform",
+    "noreplay",
+    "plain"
+  ],
+  "training_seed": 42,
+  "evaluation_seed": 7,
+  "policy_seed": 0,
+  "training_seeds_count": 1,
+  "steps_per_stage": 10000,
+  "batch_size": 2,
+  "learning_rate_peak": 5e-05,
+  "learning_rate_final": 5e-06,
+  "warmup_steps": 500,
+  "action_horizon": 10,
+  "replan_steps": 5,
+  "max_token_len": 200,
+  "discrete_state_input": true,
+  "freeze_strategy": "same balanced backbone/head boundary; CL orthogonal/frozen A, task B/gate bank isolation with current-row-only optimizer updates",
+  "ema": false,
+  "kd_weight": 0.0,
+  "weight_decay": 0.0,
+  "save_every": 500,
+  "checkpoint_retention": "latest per group/stage; each final stage retained",
+  "replay_episode_budget": 10,
+  "replay_frames_per_segment": 3,
+  "replay_every_n_steps": 4,
+  "replay_loss_weight": 0.5,
+  "replay_task_sampling": "round_robin",
+  "replay_feature_weights": {
+    "context": 0.25,
+    "action": 0.5,
+    "physical": 0.25
+  },
+  "uniform_budget": "exact same source episodes and per-episode sample counts as the prototype group",
+  "normalization": "per-task training data only, exact q01/q99 affine; replay/eval use the corresponding old task's statistics",
+  "eval_episodes_per_task": 50,
+  "eval_warmup_steps": 10,
+  "total_training_stages": 16,
+  "total_evaluation_sessions": 40,
+  "total_evaluation_episodes": 2000,
+  "tasks": [
+    {
+      "key": "A",
+      "suite": "libero_spatial",
+      "task_id": 6,
+      "source_task_index": 30,
+      "episodes": 46,
+      "frames": 5775,
+      "name": "pick up the black bowl next to the cookie box and place it on the plate"
+    },
+    {
+      "key": "B",
+      "suite": "libero_spatial",
+      "task_id": 0,
+      "source_task_index": 34,
+      "episodes": 45,
+      "frames": 4487,
+      "name": "pick up the black bowl between the plate and the ramekin and place it on the plate"
+    },
+    {
+      "key": "C",
+      "suite": "libero_object",
+      "task_id": 8,
+      "source_task_index": 29,
+      "episodes": 50,
+      "frames": 7964,
+      "name": "pick up the chocolate pudding and place it in the basket"
+    },
+    {
+      "key": "D",
+      "suite": "libero_goal",
+      "task_id": 7,
+      "source_task_index": 16,
+      "episodes": 50,
+      "frames": 4454,
+      "name": "turn on the stove"
+    }
+  ],
+  "protocol_repairs": [
+    "Preserve original spatial6/spatial0/object8/goal7 sequence instead of the different reference pi05 taskA",
+    "Enable state tokens uniformly; reference discrete_state_input=False otherwise leaves pi05 without robot state",
+    "Use identical balanced backbone/head freeze boundary and budgets across four groups",
+    "Adapt LIBERO two-view/state8/action7 replay rather than RoboTwin three-view/state14",
+    "Interpret state rotation as axis-angle, not a quaternion slice",
+    "Protect previous/future task-bank rows during replay optimizer updates",
+    "Use low-host-memory native initialization, dynamic-model feature JIT, and image-free numeric column reads"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "protocol": "pi05-libero-plain-prototype-supervisor-v1",
+  "jobs": [
+    {
+      "group": "plain_prototype",
+      "stage": "A",
+      "steps": 10000,
+      "evaluate_tasks": [
+        "A"
+      ],
+      "build_memory": false
+    },
+    {
+      "group": "plain_prototype",
+      "stage": "B",
+      "steps": 10000,
+      "evaluate_tasks": [
+        "A",
+        "B"
+      ],
+      "build_memory": false
+    },
+    {
+      "group": "plain_prototype",
+      "stage": "C",
+      "steps": 10000,
+      "evaluate_tasks": [
+        "A",
+        "B",
+        "C"
+      ],
+      "build_memory": false
+    },
+    {
+      "group": "plain_prototype",
+      "stage": "D",
+      "steps": 10000,
+      "evaluate_tasks": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "build_memory": false
+    }
+  ],
+  "tasks": {
+    "A": [
+      "libero_spatial",
+      6,
+      "pick up the black bowl next to the cookie box and place it on the plate"
+    ],
+    "B": [
+      "libero_spatial",
+      0,
+      "pick up the black bowl between the plate and the ramekin and place it on the plate"
+    ],
+    "C": [
+      "libero_object",
+      8,
+      "pick up the chocolate pudding and place it in the basket"
+    ],
+    "D": [
+      "libero_goal",
+      7,
+      "turn on the stove"
+    ]
+  },
+  "steps_per_stage": 10000,
+  "batch_size": 2,
+  "expected_training_stages": 4,
+  "expected_evaluations": 10,
+  "memory_build_jobs": 0
+}

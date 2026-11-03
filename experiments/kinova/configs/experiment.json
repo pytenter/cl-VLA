@@ -1,0 +1,268 @@
+{
+  "experiment": "E1_wrist_pilot_segmented_from_committed500",
+  "scope": "D0 exploratory offline single-task ordinary LoRA",
+  "candidate_root": "<CANDIDATE_ROOT>",
+  "source_data_mutation": false,
+  "robot_commands": false,
+  "base_params": "<BASE_PARAMS_ROOT>",
+  "ordinary_lora": {
+    "rank": 16,
+    "alpha": 32,
+    "dropout": 0,
+    "zero_init_B": true,
+    "CL_banks": false
+  },
+  "training": {
+    "actual_batch": 1,
+    "accumulation": 4,
+    "effective_batch": 4,
+    "seed": 42,
+    "smoke_optimizer_steps": 32,
+    "smoke_steps_already_committed_in_source": 32,
+    "smoke_updates_to_execute_this_run": 0,
+    "pilot_optimizer_steps": 2000,
+    "pilot_starts_from": "original base trajectory; full-state resumed committed500, never the smoke checkpoint",
+    "lora_peak_lr": 0.0001,
+    "head_peak_lr": 1e-05,
+    "warmup": 100,
+    "optimizer": "AdamW b1=.9,b2=.95,eps=1e-8,weight_decay=0; global clip1",
+    "checkpoint_steps": [
+      500,
+      1000,
+      1500,
+      2000
+    ],
+    "ema": false,
+    "teacher": false
+  },
+  "loss": {
+    "target": "native flow velocity noise-actions",
+    "valid_action_dimensions": 7,
+    "model_action_dimensions": 32,
+    "action_horizon": 50,
+    "invalid_GT_inputs": "canonicalized to zero before forward; original full noise/attention retained",
+    "mask": "real-dimension mask AND native episode-boundary time mask",
+    "accumulation": "sum numerator gradients / sum valid elements across four microbatches",
+    "zero_or_nonfinite_update": "skip params/Adam/step advancement and fail the training branch"
+  },
+  "camera": {
+    "mode": "wrist_only",
+    "base_0_rgb": false,
+    "left_wrist_0_rgb": true,
+    "right_wrist_0_rgb": false,
+    "resize": "native 224x224 with padding",
+    "rotation": "none",
+    "external_image_used": false
+  },
+  "state": {
+    "real_dimensions": 28,
+    "tokens": "train-only quantile normalized then state tokens",
+    "continuous_shape_after_padding": 32,
+    "token_limit": 200
+  },
+  "data_quality": {
+    "manual_review_pending": 107,
+    "external_sync_status": "UNVERIFIED",
+    "wrist_sync_status": "UNVERIFIED",
+    "controller_action_API": "UNKNOWN"
+  },
+  "validation": {
+    "plan_sha256": "c1ce3d170df3df56dba4c63ae7ea17a3b46c00ffade7779f86026d8d8b5708d1",
+    "checkpoint_selection": {
+      "metric": "first10_valid_normalized_group_equal_mse",
+      "window": 10,
+      "formula": "mean_episode(mean_block_seed(mean_valid_t<10((mean_xyz(error_norm^2)+mean_euler(error_norm^2)+gripper_error_norm^2)/3)))",
+      "dimension_groups": {
+        "xyz": [
+          0,
+          1,
+          2
+        ],
+        "euler": [
+          3,
+          4,
+          5
+        ],
+        "gripper": [
+          6
+        ]
+      },
+      "weights": {
+        "xyz": 0.3333333333333333,
+        "euler": 0.3333333333333333,
+        "gripper": 0.3333333333333333
+      },
+      "episode_weight": "equal",
+      "block_seed_weight_within_episode": "equal",
+      "eligible_optimizer_steps": [
+        500,
+        1000,
+        1500,
+        2000
+      ],
+      "tie_break": "smaller optimizer step",
+      "E0_role": "comparison only; never an E1 checkpoint candidate",
+      "incomplete_or_nonfinite": "ineligible; no silent sample dropping",
+      "no_valid_elements": "error; no division by zero"
+    },
+    "test_evaluation": "reserved; no model scoring/selection on test in this pilot",
+    "E0_execution": "Explicit SHA-verified reuse of source205332 same-graph deterministic E0 (60 blocks,71 BF16 hashes); not re-executed here",
+    "E0_source_root": "<ARCHIVE_ROOT>/run_20261102_205332_deterministic",
+    "E0_factory": "zero_lora_baseline.build_zero_lora_baseline(hash_parameters=True); native smoke init, no optimizer updates, full BF16 view",
+    "required_pre_prediction_parameter_identity": "E0 and independent smoke each hash all71 BF16 inference leaves (51 base+20 adapters), exact equality before strict prediction comparison",
+    "E0_legacy_source_root_historical_only": "<ARCHIVE_ROOT>/run_20261102_171037",
+    "legacy_input_and_noise_sha256": "ce8d173d18889409540018db29c797989e5469d63b52aff178f6360cd9ec1396",
+    "strict_same_graph_prediction_tolerance": {
+      "atol": 1e-05,
+      "rtol": 1e-05
+    },
+    "E1_improvement_reference": "Only newly executed same-graph E0; legacy pure Frozen is excluded",
+    "E0_source_identity": "Untouched source files and numerical-function AST checked; load_model and weight_loader construction explicitly changed",
+    "loader_change_equivalence": "Bounded native CPU value/target-dtype/serialization tests plus full-base zero-LoRA fixed-input GPU prediction acceptance remain required"
+  },
+  "resource_policy": {
+    "mode": "exclusive_gpu",
+    "user_authorized": true,
+    "authorization": "User resumed Kinova offline fine-tuning; copied committed500 full-state, guarded precompile cleanup after restore/replay, same schedule2000 in separate500-update processes",
+    "jax_memory_fraction": 0.85,
+    "jax_preallocate": false,
+    "min_free_vram_mib_before_launch": 40000,
+    "reserve_free_vram_mib": 2048,
+    "min_host_available_mib_before_launch": 16384,
+    "abort_host_available_mib": 2048,
+    "min_windows_commit_free_gib_before_launch": 16,
+    "abort_windows_commit_free_gib": 1.5,
+    "windows_sample_max_age_seconds": 5,
+    "windows_stable_window_seconds": 30,
+    "resource_stable_checks": 2,
+    "resource_eligible_poll_seconds": 10,
+    "resource_blocked_poll_seconds": 30,
+    "stop_existing_jobs": false,
+    "require_libero_complete": true,
+    "required_completed_roots": [
+      "<LIBERO_FOURWAY_ROOT>",
+      "<LIBERO_PLAIN_PROTOTYPE_ROOT>"
+    ],
+    "checkpoint_io_concurrent_gb": 3,
+    "weight_restore_mode": "Native Orbax CPU target dtype single-leaf restoration followed by native merge and native JIT init donation",
+    "host_threshold_rationale": "Independent run after all LIBERO workloads exited; measured Windowscommitfree31.53GiB vs prior8GiB. Admit only>=16GiB Windows andLinux; this is not a proven peak bound. Keepruntime protection.",
+    "window_rationale": "30s stable independent-resource observation; no concurrent LIBERO500-step save peaks remain",
+    "memory_fraction_scope": "JAX BFC pool only, no hardware partition or whole-process cap",
+    "retry_policy": "Pre-JAX explicit75 resource deferrals requeue; actual model/optimizer errors preserve logs and stop this branch",
+    "controlled_retry": 1,
+    "controlled_retry_of": "<ARCHIVE_ROOT>/run_20261102_192657_bounded_native",
+    "idle_clean_pagecache_reclaim": true,
+    "user_requested_native_loading": true,
+    "model_error_attempt_budget": 1,
+    "native_bounded_io": true,
+    "drop_clean_cache_after_native_cpu_restore": true,
+    "native_cache_reclaim_min_windows_commit_free_gib": 12,
+    "native_cache_reclaim_wait_seconds": 60,
+    "transfer_phase_budget_rationale": "CPU tree already resident; measured nativeGPUtransfer8.2GiB leaves3.8GiB margin; startup16 andruntime1.5GiB unchanged",
+    "deterministic_gpu_execution": true,
+    "expected_xla_flags": "--xla_gpu_autotune_level=0 --xla_gpu_deterministic_ops=true",
+    "expected_cublas_workspace_config": ":4096:8",
+    "expected_matmul_precision": "highest",
+    "checkpoint_clean_cache_reclaim": true,
+    "checkpoint_min_windows_commit_free_gib": 8,
+    "checkpoint_cache_reclaim_wait_seconds": 60,
+    "checkpoint_io_mode": "Synchronous native serialperleaf disposableGPUcopy tohost; process exits after segment save",
+    "recovery_source_root": "<ARCHIVE_ROOT>/run_20261102_205332_deterministic",
+    "checkpoint_process_exit_after_save": true,
+    "checkpoint_phase_rationale": "One save per fresh500-update process;8GiB is an additional phase gate, not a proven peak bound; startup16 and runtime1.5GiB remain unchanged",
+    "pilot_resume_source_root": "<ARCHIVE_ROOT>/run_20261102_215627_resume_commit32",
+    "resume_training_clean_cache_reclaim": true,
+    "resume_training_min_windows_commit_free_gib": 12,
+    "resume_training_cache_reclaim_wait_seconds": 60,
+    "checkpoint_save_probe_only": false,
+    "checkpoint_transfer_pinned": false,
+    "checkpoint_reclaim_during_serialization": true,
+    "checkpoint_write_cache_reclaim_bytes": 536870912,
+    "checkpoint_inter_array_min_windows_commit_free_gib": 6
+  },
+  "segmented_pilot": {
+    "source_checkpoint": "<ARCHIVE_ROOT>/run_20261102_215627_resume_commit32/checkpoints/E1_wrist_pilot/seed42/500",
+    "copied_checkpoint": "<KINOVA_ROOT>/checkpoints/E1_wrist_pilot/seed42/500",
+    "initial_step": 500,
+    "segment_stops": [
+      1000,
+      1500,
+      2000
+    ],
+    "total_schedule_steps": 2000,
+    "updates_to_execute_this_run": 1500,
+    "source_uncommitted_suffix": [
+      501,
+      1000
+    ],
+    "dataset_replay": "Every segment replays initial_optimizer_step*4 seeded microbatches before next update",
+    "checkpoint_copy_validation": "All277 copied files SHA256 checked with bounded8MiB reads; exact first500 optimizer rows"
+  },
+  "smoke_recovery": {
+    "source_root": "<ARCHIVE_ROOT>/run_20261102_205332_deterministic",
+    "source_checkpoint": "<ARCHIVE_ROOT>/run_20261102_205332_deterministic/checkpoints/E1_wrist_smoke/seed42/32",
+    "original_training_updates": 32,
+    "new_smoke_updates": 0,
+    "order": "reuse already verified source32 recovery; no repeated GPU smoke. Resume full-state pilot500 in three500-update processes",
+    "original_post_training_RAM_hashes_available": false,
+    "evidence_boundary": "First final snapshot is recovered from committed checkpoint. Two restores can prove repeated restoration equality, not original-live-RAM-to-save equivalence."
+  },
+  "deterministic_execution": {
+    "XLA_FLAGS": "--xla_gpu_autotune_level=0 --xla_gpu_deterministic_ops=true",
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "JAX_DEFAULT_MATMUL_PRECISION": "highest",
+    "PYTHONHASHSEED": "42",
+    "scope": "Declared execution configuration; CPU parse/proofs do not establish full GPU determinism. Fresh E0,71 BF16 hashes and strict1e-5 prediction/restore acceptance remain mandatory"
+  },
+  "loading": {
+    "mode": "Native Orbax CPU restore with per-leaf RestoreArgs.dtype before NumPy read; private SequentialNumpyHandler delegates one leaf at a time to native NumpyHandler.deserialize, then native merge/init_train_state",
+    "checkpointer": "ocp.Checkpointer(ocp.PyTreeCheckpointHandler(restore_concurrent_gb=6,type_handler_registry=private_registry))",
+    "serialization": "wrapper lock plus one-leaf native deserialize; pinned native NumPy handler does not consume the byte limiter, so 6GB declaration is not the actual memory cap",
+    "evaluation": "same native CPU direct-target-dtype restore, then config.model.load; no custom TensorStore data reader or GPU-first/DUS restore",
+    "tensorstore_context": "16MiB shared cache/coalescing, I/O=1, copy=1; native handler performs data reads",
+    "memory_scope": "Full target-dtype host tree may exist; per-leaf/read limits and allocator fraction are not process/Windows commit peak guarantees",
+    "cpu_evidence": "reports/cacheguard_native_cpu.json",
+    "prior_bounded_cpu_evidence": "reports/bounded_native_weights_cpu.json",
+    "changed_loader_not_certified_by": "Historical chunked/one-leaf CPU tests",
+    "legacy_restore_budget_correction": "Historical PyTreeCheckpointer(handler) first positional argument was primary_host; old custom restore-budget claims do not certify this native path",
+    "checkpoint_save": "CheckpointManager item_handlers save interface is separate and unchanged"
+  },
+  "pre_transfer_clean_cache_maintenance": {
+    "enabled": true,
+    "when": "After full native CPU restore/release, before native merge/GPU init or evaluation device_put",
+    "scope": "Invoked only in current own exclusive model child; Linux-wide transient clean pagecache reclaim, not persistent OS/pagefile/WSL/swap changes",
+    "guards": "No startup/runtime threshold reduction; any actual model/maintenance error preserves evidence and stops branch",
+    "cpu_evidence": "reports/memory_maintenance_cpu.json",
+    "result_claim": "CPU mocks/hook order are not actual reclaim, GPU peak or optimizer evidence"
+  },
+  "completed_train_arrow_cache": {
+    "source": "<ARCHIVE_ROOT>/run_20261103_110800_writecache_probe/cache/datasets/parquet/default-f9c7b8e1f3bff9e2/0.0.0/44f416866d3c9e08988351a4e721e2a50379e82d7ca68262da231acd39e318fe",
+    "copy": "<KINOVA_ROOT>/cache/datasets/parquet/default-f9c7b8e1f3bff9e2/0.0.0/44f416866d3c9e08988351a4e721e2a50379e82d7ca68262da231acd39e318fe",
+    "files": 12,
+    "bytes": 5659005114,
+    "train_rows": 8011,
+    "scope": "Independent new copy of completed Arrow+dataset_info only; no old lock/incomplete files; metadata/size checks, no full payload hash"
+  },
+  "completed_cache_reuse": {
+    "source_root": "<ARCHIVE_ROOT>/run_20261103_110800_writecache_probe",
+    "manifest": "manifests/cache_reuse.json",
+    "files": 17,
+    "bytes": 7603798421,
+    "rowcounts": [
+      8011,
+      2754
+    ],
+    "validation_cache_is_not_new_model_scoring": true
+  },
+  "phase_memory": {
+    "cpu_evidence": "reports/phase_memory_cpu.json",
+    "measurements": "stdlib /proc RSS/PSS and saved Windows commit/private counters; sampled maxima are observations, not theoretical phase peak bounds",
+    "system_setting_changes": false
+  },
+  "idle_clean_pagecache_reclaim": {
+    "enabled": true,
+    "cpu_evidence": "reports/idle_reclaim_cpu.json",
+    "scope": "One guarded idle attempt per execute phase before admission; preserve 16GiB/30s and runtime thresholds; no promised memory recovery"
+  },
+  "parameter_hashing": "C-order leading-axis slices, target64MiB; largest individual existing scan row128MiB"
+}

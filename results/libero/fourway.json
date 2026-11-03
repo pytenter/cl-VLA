@@ -1,0 +1,451 @@
+{
+  "protocol": "pi05-libero-fourway-supervisor-v1",
+  "status": "complete",
+  "updated_at": "2026-11-01T22:13:43.105442+00:00",
+  "groups": {
+    "prototype": {
+      "success_rate_matrix": {
+        "A": {
+          "A": 0.76,
+          "B": null,
+          "C": null,
+          "D": null
+        },
+        "B": {
+          "A": 0.86,
+          "B": 0.74,
+          "C": null,
+          "D": null
+        },
+        "C": {
+          "A": 0.88,
+          "B": 0.9,
+          "C": 0.78,
+          "D": null
+        },
+        "D": {
+          "A": 0.9,
+          "B": 0.94,
+          "C": 0.8,
+          "D": 1.0
+        }
+      },
+      "final_average": 0.9099999999999999,
+      "final_old_task_average": 0.8799999999999999,
+      "backward_transfer": 0.12
+    },
+    "uniform": {
+      "success_rate_matrix": {
+        "A": {
+          "A": 0.72,
+          "B": null,
+          "C": null,
+          "D": null
+        },
+        "B": {
+          "A": 0.84,
+          "B": 0.78,
+          "C": null,
+          "D": null
+        },
+        "C": {
+          "A": 0.88,
+          "B": 0.88,
+          "C": 0.84,
+          "D": null
+        },
+        "D": {
+          "A": 0.84,
+          "B": 0.78,
+          "C": 0.88,
+          "D": 0.98
+        }
+      },
+      "final_average": 0.87,
+      "final_old_task_average": 0.8333333333333334,
+      "backward_transfer": 0.053333333333333344
+    },
+    "noreplay": {
+      "success_rate_matrix": {
+        "A": {
+          "A": 0.66,
+          "B": null,
+          "C": null,
+          "D": null
+        },
+        "B": {
+          "A": 0.14,
+          "B": 0.84,
+          "C": null,
+          "D": null
+        },
+        "C": {
+          "A": 0.04,
+          "B": 0.82,
+          "C": 0.78,
+          "D": null
+        },
+        "D": {
+          "A": 0.08,
+          "B": 0.76,
+          "C": 0.9,
+          "D": 1.0
+        }
+      },
+      "final_average": 0.685,
+      "final_old_task_average": 0.58,
+      "backward_transfer": -0.18000000000000002
+    },
+    "plain": {
+      "success_rate_matrix": {
+        "A": {
+          "A": 0.8,
+          "B": null,
+          "C": null,
+          "D": null
+        },
+        "B": {
+          "A": 0.0,
+          "B": 0.86,
+          "C": null,
+          "D": null
+        },
+        "C": {
+          "A": 0.0,
+          "B": 0.0,
+          "C": 0.98,
+          "D": null
+        },
+        "D": {
+          "A": 0.0,
+          "B": 0.0,
+          "C": 0.0,
+          "D": 0.98
+        }
+      },
+      "final_average": 0.245,
+      "final_old_task_average": 0.0,
+      "backward_transfer": -0.88
+    }
+  },
+  "evaluations": {
+    "prototype": {
+      "A/A": {
+        "successes": 38,
+        "episodes": 50,
+        "success_rate": 0.76,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_A/task_A/attempt_20261031T155047Z_1d71ad/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_A/seed42/10000/params"
+      },
+      "B/A": {
+        "successes": 43,
+        "episodes": 50,
+        "success_rate": 0.86,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_B/task_A/attempt_20261031T155047Z_1d71ad/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_B/seed42/10000/params"
+      },
+      "B/B": {
+        "successes": 37,
+        "episodes": 50,
+        "success_rate": 0.74,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_B/task_B/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_B/seed42/10000/params"
+      },
+      "C/A": {
+        "successes": 44,
+        "episodes": 50,
+        "success_rate": 0.88,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_C/task_A/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_C/seed42/10000/params"
+      },
+      "C/B": {
+        "successes": 45,
+        "episodes": 50,
+        "success_rate": 0.9,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_C/task_B/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_C/seed42/10000/params"
+      },
+      "C/C": {
+        "successes": 39,
+        "episodes": 50,
+        "success_rate": 0.78,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_C/task_C/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_C/seed42/10000/params"
+      },
+      "D/A": {
+        "successes": 45,
+        "episodes": 50,
+        "success_rate": 0.9,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_D/task_A/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_D/seed42/10000/params"
+      },
+      "D/B": {
+        "successes": 47,
+        "episodes": 50,
+        "success_rate": 0.94,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_D/task_B/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_D/seed42/10000/params"
+      },
+      "D/C": {
+        "successes": 40,
+        "episodes": 50,
+        "success_rate": 0.8,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_D/task_C/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_D/seed42/10000/params"
+      },
+      "D/D": {
+        "successes": 50,
+        "episodes": 50,
+        "success_rate": 1.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/prototype/stage_D/task_D/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_prototype_D/seed42/10000/params"
+      }
+    },
+    "uniform": {
+      "A/A": {
+        "successes": 36,
+        "episodes": 50,
+        "success_rate": 0.72,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_A/task_A/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_A/seed42/10000/params"
+      },
+      "B/A": {
+        "successes": 42,
+        "episodes": 50,
+        "success_rate": 0.84,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_B/task_A/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_B/seed42/10000/params"
+      },
+      "B/B": {
+        "successes": 39,
+        "episodes": 50,
+        "success_rate": 0.78,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_B/task_B/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_B/seed42/10000/params"
+      },
+      "C/A": {
+        "successes": 44,
+        "episodes": 50,
+        "success_rate": 0.88,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_C/task_A/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_C/seed42/10000/params"
+      },
+      "C/B": {
+        "successes": 44,
+        "episodes": 50,
+        "success_rate": 0.88,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_C/task_B/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_C/seed42/10000/params"
+      },
+      "C/C": {
+        "successes": 42,
+        "episodes": 50,
+        "success_rate": 0.84,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_C/task_C/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_C/seed42/10000/params"
+      },
+      "D/A": {
+        "successes": 42,
+        "episodes": 50,
+        "success_rate": 0.84,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_D/task_A/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_D/seed42/10000/params"
+      },
+      "D/B": {
+        "successes": 39,
+        "episodes": 50,
+        "success_rate": 0.78,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_D/task_B/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_D/seed42/10000/params"
+      },
+      "D/C": {
+        "successes": 44,
+        "episodes": 50,
+        "success_rate": 0.88,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_D/task_C/attempt_20261101T013806Z_73a249/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_D/seed42/10000/params"
+      },
+      "D/D": {
+        "successes": 49,
+        "episodes": 50,
+        "success_rate": 0.98,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/uniform/stage_D/task_D/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_uniform_D/seed42/10000/params"
+      }
+    },
+    "noreplay": {
+      "A/A": {
+        "successes": 33,
+        "episodes": 50,
+        "success_rate": 0.66,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_A/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_A/seed42/10000/params"
+      },
+      "B/A": {
+        "successes": 7,
+        "episodes": 50,
+        "success_rate": 0.14,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_B/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_B/seed42/10000/params"
+      },
+      "B/B": {
+        "successes": 42,
+        "episodes": 50,
+        "success_rate": 0.84,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_B/task_B/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_B/seed42/10000/params"
+      },
+      "C/A": {
+        "successes": 2,
+        "episodes": 50,
+        "success_rate": 0.04,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_C/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_C/seed42/10000/params"
+      },
+      "C/B": {
+        "successes": 41,
+        "episodes": 50,
+        "success_rate": 0.82,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_C/task_B/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_C/seed42/10000/params"
+      },
+      "C/C": {
+        "successes": 39,
+        "episodes": 50,
+        "success_rate": 0.78,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_C/task_C/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_C/seed42/10000/params"
+      },
+      "D/A": {
+        "successes": 4,
+        "episodes": 50,
+        "success_rate": 0.08,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_D/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_D/seed42/10000/params"
+      },
+      "D/B": {
+        "successes": 38,
+        "episodes": 50,
+        "success_rate": 0.76,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_D/task_B/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_D/seed42/10000/params"
+      },
+      "D/C": {
+        "successes": 45,
+        "episodes": 50,
+        "success_rate": 0.9,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_D/task_C/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_D/seed42/10000/params"
+      },
+      "D/D": {
+        "successes": 50,
+        "episodes": 50,
+        "success_rate": 1.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/noreplay/stage_D/task_D/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_noreplay_D/seed42/10000/params"
+      }
+    },
+    "plain": {
+      "A/A": {
+        "successes": 40,
+        "episodes": 50,
+        "success_rate": 0.8,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_A/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_A/seed42/10000/params"
+      },
+      "B/A": {
+        "successes": 0,
+        "episodes": 50,
+        "success_rate": 0.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_B/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_B/seed42/10000/params"
+      },
+      "B/B": {
+        "successes": 43,
+        "episodes": 50,
+        "success_rate": 0.86,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_B/task_B/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_B/seed42/10000/params"
+      },
+      "C/A": {
+        "successes": 0,
+        "episodes": 50,
+        "success_rate": 0.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_C/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_C/seed42/10000/params"
+      },
+      "C/B": {
+        "successes": 0,
+        "episodes": 50,
+        "success_rate": 0.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_C/task_B/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_C/seed42/10000/params"
+      },
+      "C/C": {
+        "successes": 49,
+        "episodes": 50,
+        "success_rate": 0.98,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_C/task_C/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_C/seed42/10000/params"
+      },
+      "D/A": {
+        "successes": 0,
+        "episodes": 50,
+        "success_rate": 0.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_D/task_A/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_D/seed42/10000/params"
+      },
+      "D/B": {
+        "successes": 0,
+        "episodes": 50,
+        "success_rate": 0.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_D/task_B/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_D/seed42/10000/params"
+      },
+      "D/C": {
+        "successes": 0,
+        "episodes": 50,
+        "success_rate": 0.0,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_D/task_C/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_D/seed42/10000/params"
+      },
+      "D/D": {
+        "successes": 49,
+        "episodes": 50,
+        "success_rate": 0.98,
+        "evaluation_json": "<LIBERO_FOURWAY_ROOT>/evaluations/plain/stage_D/task_D/attempt_20261101T110352Z_9dc4a2/evaluation.json",
+        "checkpoint": "<LIBERO_FOURWAY_ROOT>/checkpoints/pi05_libero_plain_D/seed42/10000/params"
+      }
+    }
+  },
+  "completed_evaluations": 40,
+  "expected_evaluations": 40,
+  "invalid_results": [],
+  "training_seed": 42,
+  "evaluation_seed": 7,
+  "policy_seed": 0,
+  "trials_per_task": 50,
+  "tasks": {
+    "A": [
+      "libero_spatial",
+      6,
+      "pick up the black bowl next to the cookie box and place it on the plate"
+    ],
+    "B": [
+      "libero_spatial",
+      0,
+      "pick up the black bowl between the plate and the ramekin and place it on the plate"
+    ],
+    "C": [
+      "libero_object",
+      8,
+      "pick up the chocolate pudding and place it in the basket"
+    ],
+    "D": [
+      "libero_goal",
+      7,
+      "turn on the stove"
+    ]
+  },
+  "scope": "single training seed; fixed 50 simulator initial states per task, no confidence claim across training seeds"
+}

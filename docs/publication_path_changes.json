@@ -1,0 +1,245 @@
+{
+  "scope": "Publication copy only. Tested runtime, source data and checkpoints are unchanged. This is not a new training run.",
+  "changes": [
+    {
+      "path": "experiments/libero_plain_prototype/experiment_config.py",
+      "original_sha256": "e90b8b48f8c102763c44f476210c6c56e6d6bacfff03902029f74c8532128f36",
+      "published_sha256": "dd5cea59096d5a3df07117043f5ce40ae2292c0d248421bf192f6a4d6575a41c",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_plain_prototype/libero_integration.py",
+      "original_sha256": "4accb32759542c4f73cbb89c3eb6b571b5851fa895aa5983e7857e697e0fcfe4",
+      "published_sha256": "0c8471405bedd9b37423bcccca966190bbf45c6688555c1f9bf887a3bedf2901",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_plain_prototype/verify_smoke.py",
+      "original_sha256": "d79ca0aff50d5aea504c78760b5986f38509b53a75c1880ee78b689831aca942",
+      "published_sha256": "3357a9b2e0e16828e762daac713c6e2a32b763a7d6d43efafbfd51c494859952",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_plain_prototype/baseline_experiment_config.py",
+      "original_sha256": "0dd90d38e63d29589d134a1bef3e7895b9ee4a71fdff4c8aa0e82e04d4926100",
+      "published_sha256": "70ba36889bec68c08366e39a33223abebe398142b525e4bb8062570b6cb6623f",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_plain_prototype/progress.py",
+      "original_sha256": "2528fefb529eea96c7aca2982f59ea5ffd80b96b1ad4212ed8c773601102d081",
+      "published_sha256": "22d1f7319a2f790a6c4620629240a2f29c6982a1bdd83c670b8dec33cae3cb37",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_plain_prototype/run_experiment.py",
+      "original_sha256": "c40559ee96ad1b7f28a142bcde56dd756ad904aa7b1fb2efd2d1d56c5633e91c",
+      "published_sha256": "32b7eb33043a800c354cf7459acc7e32175ba5170e67a75037b676af3bfa0f2a",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_plain_prototype/preflight.py",
+      "original_sha256": "0a8692edc5a8917179bd2a908054a340fea408e72f7704a7831cce4cec6e4105",
+      "published_sha256": "2db681299e719468813f916166841dda5bd40991bd4e5c5bd60d9dae118f9ca3",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/test_cacheguard_native_cpu.py",
+      "original_sha256": "73be179b5eebace1b36de9fe6b5dcb19a054c7a7d2830c42af34ee4c87c22874",
+      "published_sha256": "c373033f30e173054868f533654bd5c3c2779d96e2e1d7d4052450fa3c4c70a1",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/continuation_data_check.py",
+      "original_sha256": "b1710c77af1bccabd1298d94018907433c4fdadc1c3d725cb8c4ce189bc1e3bd",
+      "published_sha256": "6be7c488597f1b35f082b3bd8c1af73d20b818c72167851638f5c0e06e57880a",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/test_native_weights_cpu.py",
+      "original_sha256": "edcf7479976d0b685772a2b20ac11cdfe226b6a029dc235c4ac3093183cc4a06",
+      "published_sha256": "91f45f66d4b88ac520804cdc4b7ce294c4a1a878a3e28dffbada30e23e8b03cc",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/memory_maintenance.py",
+      "original_sha256": "d8200f318bd5e09892924af589b9527a63d3a3e591dcc1339e607fc0717b1371",
+      "published_sha256": "19d6a9024d23725b39c611cdb768eddddcf4ab39d0312cec6f458a6f2dc1889c",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/capture_environment.py",
+      "original_sha256": "fbb8086fb0172a6b3ae466fd6155ebeb6f061e10acd119a00a96b3994a9390be",
+      "published_sha256": "d103e06d94f631befdae222c1da6d5acea87b50bae4b678fe6820377eddb39fe",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/test_accumulated_update.py",
+      "original_sha256": "952d9635dfad07f37829b6d184971c82b28b5ac271055775a94f181f1c1d3662",
+      "published_sha256": "a6740e7a2d797c0be8b178f7fa0b1082af17f70cce92c8cf5d6dc200e7a6fb41",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/resource_guard.py",
+      "original_sha256": "21995dd8ae3e4cb3851a3bc19166280585bac3d12977130f9cfba2a2ed3c9e76",
+      "published_sha256": "eee4fa93384c6a451f7e1146ea206af72f345cea6366b282f012bed595031f44",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/build_report.py",
+      "original_sha256": "549e66812d554875bed6111785002fdea8f21466e73ece8cd301480213dabd1d",
+      "published_sha256": "3d77a3fe9cb6e5694dc66dbef60adbd24d17298d4e890a9a8b7db6367be31dc5",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/prepare_training.py",
+      "original_sha256": "a9088412d366de01a1aa3f01ba7e45d3857c51b3ec0efbcbf2de5c4461f7fe0f",
+      "published_sha256": "09e449b75408436ccc36cf0e4517707873fb6c8a9704930855b3489854bc1fb0",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/validation_plan.py",
+      "original_sha256": "6e66cf3965646978045461924c4f961d56bfbb5c2e6ab9ddcd780f29fb20d6b1",
+      "published_sha256": "66c130380950206deafd9bd9a335ffa80740755e2c3b66bd8d3912b887bc86b5",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/zero_lora_baseline.py",
+      "original_sha256": "90bee7c8812877d3671a0fa894c417d523b30c273ec52b3267b4882728045611",
+      "published_sha256": "13559b9a270458c7c24ff671285bd94e1b37c3bb52c88358940bd8cefadf2215",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/train_kinova.py",
+      "original_sha256": "a91fcbe77546ef0917cc733cc679a18405872ff9528ccb299eacef1b1de07a42",
+      "published_sha256": "530b99a79707675f79f88a68e93c480078418164c088a2348b4134fc8fdc7ea0",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/recover_smoke.py",
+      "original_sha256": "107c46228ec2a26dace99b6d40446a594eebccb542475e667c8b8fc5912cf373",
+      "published_sha256": "8d83cf72095ff3718e4a2148b6f944b64e0659a122cd6ca98156925aa4a84186",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/kinova_config.py",
+      "original_sha256": "a6fa7eb1dd842638218fba2b167b24bb61da4cf060d1294f907bb6c0f64ac038",
+      "published_sha256": "3dc794a84c557bba629d77fa6afd0ee7f2d50081822b094b664127c679ff8984",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/run_workflow.py",
+      "original_sha256": "48c72fb6988e051873648f9c260ad7bb529a5e9ccc5582dca26e8033f7577444",
+      "published_sha256": "288a66f3cc96ff440d118764f27c666d759c91439e2ce5e6d55ec22084e9a126",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/kinova/test_segmented_workflow_cpu.py",
+      "original_sha256": "f4c2a486ea65b179736701e9fc77c8ebb0f73b2b13cc35479c384c0fc6330b3e",
+      "published_sha256": "33cd3458a98f0f5b43f10f8ffee6ca8c80b33e94b1674a15ec27954c113bbb76",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/experiment_config.py",
+      "original_sha256": "0dd90d38e63d29589d134a1bef3e7895b9ee4a71fdff4c8aa0e82e04d4926100",
+      "published_sha256": "70ba36889bec68c08366e39a33223abebe398142b525e4bb8062570b6cb6623f",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/libero_integration.py",
+      "original_sha256": "4accb32759542c4f73cbb89c3eb6b571b5851fa895aa5983e7857e697e0fcfe4",
+      "published_sha256": "0c8471405bedd9b37423bcccca966190bbf45c6688555c1f9bf887a3bedf2901",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/setup_eval_env.py",
+      "original_sha256": "aaf1493947d2b68d74beefe411b8782b0b67910993789dd2be87a099c83ee782",
+      "published_sha256": "2c3ba2eb7fb2e7b606fb866cc1c06dff417b35e3020e38feba7c2839524070d0",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/audit_parameter_layout.py",
+      "original_sha256": "bc022689c18067e08d91e6b5c2a0b778dddf004b084e451ad95d3c373553629f",
+      "published_sha256": "8940c728c71d8362327a5aab6dd4423079a19626b5b8d5c463842ad3d3e11768",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/simulator_smoke.py",
+      "original_sha256": "6012ae91016ad06a2213220379d0225aace794a84f30c0460fe6b335475f464a",
+      "published_sha256": "1b2a94018b285cc43c405e1de6db711a1899a8d0ae499bdf3b542a9ef0dfd64e",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/build_memory.py",
+      "original_sha256": "0bfe6c282becb659fba51216b1ee666caa60af393175b8648f22bd6382cc74c7",
+      "published_sha256": "000b10438c2ae1cf907ba5ae9b30561d1621255284d750378f5e05202630e2a7",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/progress.py",
+      "original_sha256": "a16fb5428636c0b9b324840786d18473d2856010f6fe763864a0ca8ca3302a55",
+      "published_sha256": "6bf790ff5345ec6036e89e3523dfcc1da57b60cbec4afbf77bd8c2cc688e2697",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/run_experiment.py",
+      "original_sha256": "6373385b101c284d6f47d96233739d8eda915df19b86c9891b3150dd27e23913",
+      "published_sha256": "1ab3107f94e11083d6582ebb672c8b023d5bc310b964bcebae3d61bfc6f6c444",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "experiments/libero_fourway/validate_data.py",
+      "original_sha256": "1add756741800d146d0e1dc576e024c1c219869e3ae1e556c50b4649b5adc5a8",
+      "published_sha256": "cc08be327cc6162ab6d807f5b7e289fc0b3306b61271dec5b1df9fcccc37965b",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "scripts/fetch_tokenizer.py",
+      "original_sha256": "b919956608c37d4a44b5c73a17105ab139be5453bd3a537a98f2d3b2d837dfcc",
+      "published_sha256": "f903b4cee53e0a5394de6a5ace439fa411d8b847e12d1d1d80b1e498fe52cd67",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "scripts/fetch_pi05_base.py",
+      "original_sha256": "dd712b57ad405ebbe5e123abd6f9c45d5029d90383ce63f38be8aa24887983cb",
+      "published_sha256": "b784d37287e3be4a6cd4ec9630df1ba436e796b414ff3cb12d7930c9ebb2ff75",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "scripts/fetch_pi05_chunks.py",
+      "original_sha256": "219feabb874b18ffbc287707e481b037578f52eff461d12eae6d09d155e58cb2",
+      "published_sha256": "224d138583e0f19e9a038d3eb143646019dc71c3461039b5f6281062a3d604cf",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "data/kinova/validate_pipeline.py",
+      "original_sha256": "596724fa6ee4a08af67b1af1d5f9e1ec67a8839c1225aa39a463e5659d99afeb",
+      "published_sha256": "6c9da21e0eeb3fd788f7f23f7ef8481013f30094216076cdfef1bc7aee9b7141",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "data/kinova/source_guard.py",
+      "original_sha256": "bbf3ec4b8c76b77888a33fdd8862ad7eacf50999ed232bb81c4f55746fcbed0c",
+      "published_sha256": "d1836764a5684f601095e65a9482cac314d200af9696934d8eb4e77144d3f23f",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "data/kinova/finalize_evidence.py",
+      "original_sha256": "98f7f822f35f4d783d2d5623a4994f8c7fcde2e80f47ae99292d945de85c922d",
+      "published_sha256": "abc4810d1300a9d864c0a9066bf55d2cf74c5f1b5f92a85d6b964b4a08efff8e",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    },
+    {
+      "path": "data/kinova/kinova_adapter.py",
+      "original_sha256": "72bdc795f6b5f37482e4684263e977958e0c591d536b81b7d04d0d70a2e56459",
+      "published_sha256": "7d21b439472574e7da0fafa955bd69de5bd775d1ec136cde0f404d67e8c89d11",
+      "change": "filesystem literal defaults only; original AST verified after reversing these substitutions"
+    }
+  ],
+  "additional_publication_changes": [
+    "Environment-backed path helper import packaged under openpi.shared.project_paths",
+    "Metrics input/output provenance paths are relative to results/libero; all five numeric results verified unchanged",
+    "Kinova result summaries omit bulky per-episode metrics; aggregates unchanged",
+    "Added branch documentation, environment template, ignore rules and license notices"
+  ]
+}

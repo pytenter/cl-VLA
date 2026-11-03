@@ -1,0 +1,821 @@
+{
+  "protocol": "kinova-wrist-offline-v1",
+  "label": "E1_wrist_pilot",
+  "optimizer_step": 2000,
+  "checkpoint": "<KINOVA_ROOT>/checkpoints/E1_wrist_pilot/seed42/2000",
+  "plan_sha256": "c1ce3d170df3df56dba4c63ae7ea17a3b46c00ffade7779f86026d8d8b5708d1",
+  "norm_stats_sha256": "98a93af337aae423f0d83499d1359e0bb3bf2ba25985a228b8def75fef0c7631",
+  "inference_dtype": "bfloat16 parameters",
+  "denoise_steps": 10,
+  "config_metadata": {
+    "config_name": "E1_wrist_pilot",
+    "model": {
+      "action_dim": 32,
+      "action_horizon": 50,
+      "max_token_len": 200,
+      "dtype": "bfloat16",
+      "paligemma_variant": "gemma_2b_lora",
+      "action_expert_variant": "gemma_300m_lora",
+      "pi05": true,
+      "discrete_state_input": true,
+      "cl_task_id": 0,
+      "cl_num_tasks": 4,
+      "cl_pali_lora_bank": false,
+      "cl_action_lora_bank": false,
+      "cl_pali_block_weight_bank": false,
+      "cl_action_block_weight_bank": false,
+      "cl_freeze_shared_lora": false,
+      "cl_freeze_pali_lora_b": false,
+      "cl_freeze_action_lora_b": false,
+      "cl_freeze_lora_a": false,
+      "lora_rank": 16,
+      "lora_alpha": 32.0,
+      "lora_dropout": 0.0
+    },
+    "input_pipeline": "kinova_config.build_dataset(validation); no inference-only transform",
+    "resource_gate": {
+      "checked_at": "2026-11-03T04:06:04.626022+00:00",
+      "resource_mode": "exclusive_gpu",
+      "policy": {
+        "mode": "exclusive_gpu",
+        "user_authorized": true,
+        "authorization": "User resumed Kinova offline fine-tuning; copied committed500 full-state, guarded precompile cleanup after restore/replay, same schedule2000 in separate500-update processes",
+        "jax_memory_fraction": 0.85,
+        "jax_preallocate": false,
+        "min_free_vram_mib_before_launch": 40000,
+        "reserve_free_vram_mib": 2048,
+        "min_host_available_mib_before_launch": 16384,
+        "abort_host_available_mib": 2048,
+        "min_windows_commit_free_gib_before_launch": 16,
+        "abort_windows_commit_free_gib": 1.5,
+        "windows_sample_max_age_seconds": 5,
+        "windows_stable_window_seconds": 30,
+        "resource_stable_checks": 2,
+        "resource_eligible_poll_seconds": 10,
+        "resource_blocked_poll_seconds": 30,
+        "stop_existing_jobs": false,
+        "require_libero_complete": true,
+        "required_completed_roots": [
+          "<LIBERO_FOURWAY_ROOT>",
+          "<LIBERO_PLAIN_PROTOTYPE_ROOT>"
+        ],
+        "checkpoint_io_concurrent_gb": 3,
+        "weight_restore_mode": "Native Orbax CPU target dtype single-leaf restoration followed by native merge and native JIT init donation",
+        "host_threshold_rationale": "Independent run after all LIBERO workloads exited; measured Windowscommitfree31.53GiB vs prior8GiB. Admit only>=16GiB Windows andLinux; this is not a proven peak bound. Keepruntime protection.",
+        "window_rationale": "30s stable independent-resource observation; no concurrent LIBERO500-step save peaks remain",
+        "memory_fraction_scope": "JAX BFC pool only, no hardware partition or whole-process cap",
+        "retry_policy": "Pre-JAX explicit75 resource deferrals requeue; actual model/optimizer errors preserve logs and stop this branch",
+        "controlled_retry": 1,
+        "controlled_retry_of": "<ARCHIVE_ROOT>/run_20261102_192657_bounded_native",
+        "idle_clean_pagecache_reclaim": true,
+        "user_requested_native_loading": true,
+        "model_error_attempt_budget": 1,
+        "native_bounded_io": true,
+        "drop_clean_cache_after_native_cpu_restore": true,
+        "native_cache_reclaim_min_windows_commit_free_gib": 12,
+        "native_cache_reclaim_wait_seconds": 60,
+        "transfer_phase_budget_rationale": "CPU tree already resident; measured nativeGPUtransfer8.2GiB leaves3.8GiB margin; startup16 andruntime1.5GiB unchanged",
+        "deterministic_gpu_execution": true,
+        "expected_xla_flags": "--xla_gpu_autotune_level=0 --xla_gpu_deterministic_ops=true",
+        "expected_cublas_workspace_config": ":4096:8",
+        "expected_matmul_precision": "highest",
+        "checkpoint_clean_cache_reclaim": true,
+        "checkpoint_min_windows_commit_free_gib": 8,
+        "checkpoint_cache_reclaim_wait_seconds": 60,
+        "checkpoint_io_mode": "Synchronous native serialperleaf disposableGPUcopy tohost; process exits after segment save",
+        "recovery_source_root": "<ARCHIVE_ROOT>/run_20261102_205332_deterministic",
+        "checkpoint_process_exit_after_save": true,
+        "checkpoint_phase_rationale": "One save per fresh500-update process;8GiB is an additional phase gate, not a proven peak bound; startup16 and runtime1.5GiB remain unchanged",
+        "pilot_resume_source_root": "<ARCHIVE_ROOT>/run_20261102_215627_resume_commit32",
+        "resume_training_clean_cache_reclaim": true,
+        "resume_training_min_windows_commit_free_gib": 12,
+        "resume_training_cache_reclaim_wait_seconds": 60,
+        "checkpoint_save_probe_only": false,
+        "checkpoint_transfer_pinned": false,
+        "checkpoint_reclaim_during_serialization": true,
+        "checkpoint_write_cache_reclaim_bytes": 536870912,
+        "checkpoint_inter_array_min_windows_commit_free_gib": 6
+      },
+      "allocator_environment": {
+        "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+        "XLA_PYTHON_CLIENT_MEM_FRACTION": "0.85",
+        "XLA_PYTHON_CLIENT_ALLOCATOR": "bfc",
+        "XLA_CLIENT_MEM_FRACTION": null
+      },
+      "libero_experiments": {
+        "<LIBERO_FOURWAY_ROOT>/status.json": {
+          "status": "complete",
+          "pid": null,
+          "server_pid": null,
+          "updated_at": "2026-11-01T22:13:43.112313+00:00"
+        },
+        "<LIBERO_PLAIN_PROTOTYPE_ROOT>/status.json": {
+          "status": "complete",
+          "pid": null,
+          "server_pid": null,
+          "updated_at": "2026-11-02T07:57:36.376287+00:00"
+        }
+      },
+      "libero": {
+        "status": "complete",
+        "pid": null,
+        "server_pid": null,
+        "updated_at": "2026-11-01T22:13:43.112313+00:00"
+      },
+      "gpus": [
+        {
+          "index": "0",
+          "name": "NVIDIA RTX 6000 Ada Generation",
+          "total_mib": 49140,
+          "used_mib": 869,
+          "free_mib": 47545,
+          "utilization_percent": 1
+        }
+      ],
+      "existing_cuda_processes": [],
+      "host_available_bytes": 26570207232,
+      "host_available_mib": 25339.32421875,
+      "windows_memory": {
+        "physical_available_bytes": 25090658304,
+        "sequence": 2569,
+        "vmmem_working_set_bytes": 3622850560,
+        "vmmem_private_bytes": 4034334720,
+        "page_size_bytes": 4096,
+        "source": "GetPerformanceInfo",
+        "kind": "sample",
+        "commit_free_bytes": 31137177600,
+        "commit_limit_bytes": 44910354432,
+        "vmmem_pid": 19836,
+        "committed_bytes": 13773176832,
+        "windows_pid": 16612,
+        "sampled_at": "2026-11-03T04:06:04.0919926+00:00",
+        "physical_total_bytes": 34125049856,
+        "sampled_at_unix": 1793678764.091,
+        "marker": "KinovaWindowsMemoryMonitor-a0526ffe9fe944668449a1caa9139635",
+        "rolling_commit_window_seconds": 239.2460000514984,
+        "rolling_min_commit_free_bytes": 7381184512,
+        "rolling_max_sample_gap_seconds": 1.0310001373291016,
+        "schema": "kinova-windows-memory-v1",
+        "sampling_mode": "persistent_monitor",
+        "producer_pid": 112401,
+        "received_at_unix": 1793678764.100846,
+        "received_monotonic": 225332.177946858,
+        "linux_boot_id": "a972e3fd-7a57-4f8b-93cb-acdb4bae4cf7",
+        "age_seconds": 0.6022439002990723
+      },
+      "windows_admission_window": {
+        "required_seconds": 30.0,
+        "observed_seconds": 30.4760000705719,
+        "samples": 31,
+        "maximum_sample_gap_seconds": 1.0374316349916626,
+        "minimum_commit_free_bytes": 27099369472,
+        "continuous": true
+      },
+      "eligible": true,
+      "blocking_reasons": [],
+      "allocator_verification": {
+        "status": "passed",
+        "jax_memory_fraction": 0.85,
+        "allocator_bytes_limit": 43797526527,
+        "memory_stats": {
+          "num_allocs": 2,
+          "bytes_in_use": 0,
+          "peak_bytes_in_use": 512,
+          "largest_alloc_size": 256,
+          "bytes_limit": 43797526527,
+          "bytes_reserved": 0,
+          "peak_bytes_reserved": 0,
+          "largest_free_block_bytes": 0,
+          "pool_bytes": 2097152,
+          "peak_pool_bytes": 2097152
+        },
+        "allocator_environment": {
+          "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+          "XLA_PYTHON_CLIENT_MEM_FRACTION": "0.85",
+          "XLA_PYTHON_CLIENT_ALLOCATOR": "bfc",
+          "XLA_CLIENT_MEM_FRACTION": null
+        },
+        "scope": "JAX BFC pool only; total-card, Windows and Linux headroom monitored separately"
+      }
+    }
+  },
+  "robot_actions_sent": 0,
+  "status": "complete",
+  "evaluation_valid": true,
+  "expected_block_seed_count": 60,
+  "records_completed": 60,
+  "errors": 0,
+  "missing_records": 0,
+  "nonfinite_output_count": 0,
+  "flow_matching_nonfinite_term_count": 0,
+  "abnormal_output_records": 0,
+  "episode_count": 20,
+  "dataset_metrics": {
+    "flow_matching_loss": 0.1122085297026095,
+    "nonfinite_output_count": 0.0,
+    "point": {
+      "1": {
+        "euler_component_mae": [
+          0.0010621857114843946,
+          0.000694454987427228,
+          0.00037650546183071296
+        ],
+        "euler_component_mse": [
+          5.0282415919140334e-06,
+          2.1743259826788085e-06,
+          5.575116668459218e-07
+        ],
+        "euler_component_rmse": [
+          0.002242374097226873,
+          0.0014745595893956977,
+          0.0007466670388104204
+        ],
+        "euler_mae": 0.0007110487202474453,
+        "euler_mse": 2.5866930804795876e-06,
+        "euler_normalized_mse": 0.04589755077078912,
+        "euler_rmse": 0.0016083199558792982,
+        "gripper_component_mae": [
+          0.01373249702713574
+        ],
+        "gripper_component_mse": [
+          0.0006101083710443693
+        ],
+        "gripper_component_rmse": [
+          0.02470037188068976
+        ],
+        "gripper_mae": 0.01373249702713574,
+        "gripper_mse": 0.0006101083710443693,
+        "gripper_normalized_mse": 0.004225115291365327,
+        "gripper_rmse": 0.02470037188068976,
+        "normalized_group_equal_mse": 0.02161965538754271,
+        "xyz_component_mae": [
+          0.0011759865524782415,
+          0.000940366036918024,
+          0.0008431273791598019
+        ],
+        "xyz_component_mse": [
+          4.237562023727526e-06,
+          3.9511693563405265e-06,
+          2.46744919570989e-06
+        ],
+        "xyz_component_rmse": [
+          0.00205853395010321,
+          0.0019877548531799707,
+          0.0015708116359735467
+        ],
+        "xyz_euclidean_mse": 1.065618057577794e-05,
+        "xyz_euclidean_rmse": 0.003264380580719402,
+        "xyz_mae": 0.0009864933228520224,
+        "xyz_mse": 3.55206019192598e-06,
+        "xyz_normalized_mse": 0.014736300100473684,
+        "xyz_rmse": 0.0018846910070157337
+      },
+      "10": {
+        "euler_component_mae": [
+          0.00036636523277561086,
+          0.0002144049247692396,
+          0.0002445525900214899
+        ],
+        "euler_component_mse": [
+          5.413055759444723e-07,
+          4.812018992578749e-07,
+          1.4875961974064017e-07
+        ],
+        "euler_component_rmse": [
+          0.0007357347184579998,
+          0.0006936871768008076,
+          0.0003856936864153213
+        ],
+        "euler_mae": 0.0002751075825221134,
+        "euler_mse": 3.904223649809958e-07,
+        "euler_normalized_mse": 0.009119710711347881,
+        "euler_rmse": 0.0006248378709561352,
+        "gripper_component_mae": [
+          0.016094849688684156
+        ],
+        "gripper_component_mse": [
+          0.0007897722532243399
+        ],
+        "gripper_component_rmse": [
+          0.0281028869197515
+        ],
+        "gripper_mae": 0.016094849688684156,
+        "gripper_mse": 0.0007897722532243399,
+        "gripper_normalized_mse": 0.0054693215742811505,
+        "gripper_rmse": 0.0281028869197515,
+        "normalized_group_equal_mse": 0.02389800004231869,
+        "xyz_component_mae": [
+          0.0030044603825601195,
+          0.002944634202848465,
+          0.0005949987634654343
+        ],
+        "xyz_component_mse": [
+          1.8575429675601147e-05,
+          1.933578096345105e-05,
+          2.5784425018695654e-06
+        ],
+        "xyz_component_rmse": [
+          0.004309922235447079,
+          0.004397246975489442,
+          0.001605752939237405
+        ],
+        "xyz_euclidean_mse": 4.0489653140921764e-05,
+        "xyz_euclidean_rmse": 0.0063631480527268705,
+        "xyz_mae": 0.002181364449624673,
+        "xyz_mse": 1.349655104697392e-05,
+        "xyz_normalized_mse": 0.05710496784132705,
+        "xyz_rmse": 0.0036737652411353012
+      },
+      "20": {
+        "euler_component_mae": [
+          0.0004918761825028489,
+          0.00025064464603339687,
+          0.0002890021495243151
+        ],
+        "euler_component_mse": [
+          1.784214639159466e-06,
+          5.978119371471729e-07,
+          1.9814480871758333e-07
+        ],
+        "euler_component_rmse": [
+          0.0013357449753450192,
+          0.000773182990725464,
+          0.0004451345961814059
+        ],
+        "euler_mae": 0.0003438409926868536,
+        "euler_mse": 8.600571283414074e-07,
+        "euler_normalized_mse": 0.01563410124445106,
+        "euler_rmse": 0.0009273926505754763,
+        "gripper_component_mae": [
+          0.06666667621121866
+        ],
+        "gripper_component_mse": [
+          0.02237199375172067
+        ],
+        "gripper_component_rmse": [
+          0.14957270389920974
+        ],
+        "gripper_mae": 0.06666667621121866,
+        "gripper_mse": 0.02237199375172067,
+        "gripper_normalized_mse": 0.15493027143776203,
+        "gripper_rmse": 0.14957270389920974,
+        "normalized_group_equal_mse": 0.08532152000215398,
+        "xyz_component_mae": [
+          0.003472615695261326,
+          0.003446522073684879,
+          0.0018840542355051133
+        ],
+        "xyz_component_mse": [
+          2.3762194836088602e-05,
+          2.1055300746665565e-05,
+          1.7304339902764693e-05
+        ],
+        "xyz_component_rmse": [
+          0.004874648175621355,
+          0.0045886055340011046,
+          0.004159848543248262
+        ],
+        "xyz_euclidean_mse": 6.212183548551885e-05,
+        "xyz_euclidean_rmse": 0.007881740638051905,
+        "xyz_mae": 0.0029343973348171055,
+        "xyz_mse": 2.0707278495172954e-05,
+        "xyz_normalized_mse": 0.08540018732424885,
+        "xyz_rmse": 0.00455052507906208
+      },
+      "5": {
+        "euler_component_mae": [
+          0.0005401345021216672,
+          0.0005269562440207113,
+          0.00026188636240439303
+        ],
+        "euler_component_mse": [
+          1.3580827976732755e-06,
+          2.1298467073950473e-06,
+          2.380137982909529e-07
+        ],
+        "euler_component_rmse": [
+          0.0011653680953558302,
+          0.0014593994338066077,
+          0.000487866578370514
+        ],
+        "euler_mae": 0.00044299236951559056,
+        "euler_mse": 1.2419811011197585e-06,
+        "euler_normalized_mse": 0.021476934905175417,
+        "euler_rmse": 0.0011144420582155712,
+        "gripper_component_mae": [
+          0.014057034262417353
+        ],
+        "gripper_component_mse": [
+          0.0006952776095314249
+        ],
+        "gripper_component_rmse": [
+          0.0263681172921281
+        ],
+        "gripper_mae": 0.014057034262417353,
+        "gripper_mse": 0.0006952776095314249,
+        "gripper_normalized_mse": 0.004814928327012351,
+        "gripper_rmse": 0.0263681172921281,
+        "normalized_group_equal_mse": 0.019440940665428043,
+        "xyz_component_mae": [
+          0.0021890546385297757,
+          0.0016677595708566102,
+          0.0005622047516550966
+        ],
+        "xyz_component_mse": [
+          1.1980940776514453e-05,
+          8.574138665032015e-06,
+          2.589640428210576e-06
+        ],
+        "xyz_component_rmse": [
+          0.0034613495600003263,
+          0.0029281630188621698,
+          0.0016092359765461919
+        ],
+        "xyz_euclidean_mse": 2.3144719869757046e-05,
+        "xyz_euclidean_rmse": 0.004810895952913246,
+        "xyz_mae": 0.0014730063203471607,
+        "xyz_mse": 7.714906623252348e-06,
+        "xyz_normalized_mse": 0.03203095876409636,
+        "xyz_rmse": 0.002777572073457743
+      },
+      "50": {
+        "euler_component_mae": [
+          0.0031163244261902248,
+          0.0022566702101569336,
+          0.0008386471129411118
+        ],
+        "euler_component_mse": [
+          3.73009985216306e-05,
+          1.2143779027634092e-05,
+          2.1213258667630466e-06
+        ],
+        "euler_component_rmse": [
+          0.006107454340527696,
+          0.0034847925372443753,
+          0.0014564772112062195
+        ],
+        "euler_mae": 0.002070547249762757,
+        "euler_mse": 1.7188701138675915e-05,
+        "euler_normalized_mse": 0.2518282687603556,
+        "euler_rmse": 0.004145925848188305,
+        "gripper_component_mae": [
+          0.1258848738959809
+        ],
+        "gripper_component_mse": [
+          0.04955757647965147
+        ],
+        "gripper_component_rmse": [
+          0.22261531052389785
+        ],
+        "gripper_mae": 0.1258848738959809,
+        "gripper_mse": 0.04955757647965147,
+        "gripper_normalized_mse": 0.34319555476234653,
+        "gripper_rmse": 0.22261531052389785,
+        "normalized_group_equal_mse": 0.23913741512717085,
+        "xyz_component_mae": [
+          0.0034609796340870935,
+          0.0014810969386515808,
+          0.005566719287267181
+        ],
+        "xyz_component_mse": [
+          2.916667041082447e-05,
+          8.978282265162459e-06,
+          5.507162068455391e-05
+        ],
+        "xyz_component_rmse": [
+          0.005400617595314861,
+          0.002996378191277339,
+          0.007421025581720758
+        ],
+        "xyz_euclidean_mse": 9.321657336054085e-05,
+        "xyz_euclidean_rmse": 0.009654873036997474,
+        "xyz_mae": 0.003502931953335285,
+        "xyz_mse": 3.1072191120180286e-05,
+        "xyz_normalized_mse": 0.1223884218588103,
+        "xyz_rmse": 0.0055742435469021525
+      }
+    },
+    "prefix": {
+      "1": {
+        "actual_valid_steps": 1.0,
+        "euler_component_mae": [
+          0.0010621857114843946,
+          0.000694454987427228,
+          0.00037650546183071296
+        ],
+        "euler_component_mse": [
+          5.0282415919140334e-06,
+          2.1743259826788085e-06,
+          5.575116668459218e-07
+        ],
+        "euler_component_rmse": [
+          0.002242374097226873,
+          0.0014745595893956977,
+          0.0007466670388104204
+        ],
+        "euler_mae": 0.0007110487202474453,
+        "euler_mse": 2.5866930804795876e-06,
+        "euler_normalized_mse": 0.04589755077078912,
+        "euler_rmse": 0.0016083199558792982,
+        "gripper_component_mae": [
+          0.01373249702713574
+        ],
+        "gripper_component_mse": [
+          0.0006101083710443693
+        ],
+        "gripper_component_rmse": [
+          0.02470037188068976
+        ],
+        "gripper_mae": 0.01373249702713574,
+        "gripper_mse": 0.0006101083710443693,
+        "gripper_normalized_mse": 0.004225115291365327,
+        "gripper_rmse": 0.02470037188068976,
+        "normalized_group_equal_mse": 0.02161965538754271,
+        "xyz_component_mae": [
+          0.0011759865524782415,
+          0.000940366036918024,
+          0.0008431273791598019
+        ],
+        "xyz_component_mse": [
+          4.237562023727526e-06,
+          3.9511693563405265e-06,
+          2.46744919570989e-06
+        ],
+        "xyz_component_rmse": [
+          0.00205853395010321,
+          0.0019877548531799707,
+          0.0015708116359735467
+        ],
+        "xyz_euclidean_mse": 1.065618057577794e-05,
+        "xyz_euclidean_rmse": 0.003264380580719402,
+        "xyz_mae": 0.0009864933228520224,
+        "xyz_mse": 3.55206019192598e-06,
+        "xyz_normalized_mse": 0.014736300100473684,
+        "xyz_rmse": 0.0018846910070157337
+      },
+      "10": {
+        "actual_valid_steps": 10.0,
+        "euler_component_mae": [
+          0.000612152543064472,
+          0.000495807704505371,
+          0.0002821335727607946
+        ],
+        "euler_component_mse": [
+          2.1189176190751583e-06,
+          1.672458708932465e-06,
+          2.98647044681876e-07
+        ],
+        "euler_component_rmse": [
+          0.0014556502392659985,
+          0.0012932357514902164,
+          0.0005464860882784447
+        ],
+        "euler_mae": 0.00046336460677687914,
+        "euler_mse": 1.363341124229833e-06,
+        "euler_normalized_mse": 0.024552595399981624,
+        "euler_rmse": 0.0011676219954376644,
+        "gripper_component_mae": [
+          0.014661442654289359
+        ],
+        "gripper_component_mse": [
+          0.0007065667212230591
+        ],
+        "gripper_component_rmse": [
+          0.02658132278918901
+        ],
+        "gripper_mae": 0.014661442654289359,
+        "gripper_mse": 0.0007065667212230591,
+        "gripper_normalized_mse": 0.00489310811445316,
+        "gripper_rmse": 0.02658132278918901,
+        "normalized_group_equal_mse": 0.02084955588842887,
+        "xyz_component_mae": [
+          0.0021103442116147558,
+          0.001801970559758626,
+          0.0006248569617142272
+        ],
+        "xyz_component_mse": [
+          1.1406816464946237e-05,
+          9.962030041298675e-06,
+          2.341977132800772e-06
+        ],
+        "xyz_component_rmse": [
+          0.003377397883718505,
+          0.003156268372825523,
+          0.0015303519637001066
+        ],
+        "xyz_euclidean_mse": 2.371082363904568e-05,
+        "xyz_euclidean_rmse": 0.004869376103675467,
+        "xyz_mae": 0.0015123905776958696,
+        "xyz_mse": 7.903607879681894e-06,
+        "xyz_normalized_mse": 0.03310296415085183,
+        "xyz_rmse": 0.0028113356042425625
+      },
+      "20": {
+        "actual_valid_steps": 16.66666666666667,
+        "euler_component_mae": [
+          0.0006692760759052302,
+          0.0005073861962235145,
+          0.00033151969181374855
+        ],
+        "euler_component_mse": [
+          2.384802686024592e-06,
+          1.6954526324719784e-06,
+          3.8280967009423167e-07
+        ],
+        "euler_component_rmse": [
+          0.0015442806370684675,
+          0.0013020954774792739,
+          0.0006187161466247924
+        ],
+        "euler_mae": 0.0005027273213141645,
+        "euler_mse": 1.4876883295302675e-06,
+        "euler_normalized_mse": 0.02862126586743599,
+        "euler_rmse": 0.001219708296901463,
+        "gripper_component_mae": [
+          0.021212705993610685
+        ],
+        "gripper_component_mse": [
+          0.003653858835097646
+        ],
+        "gripper_component_rmse": [
+          0.06044715737814017
+        ],
+        "gripper_mae": 0.021212705993610685,
+        "gripper_mse": 0.003653858835097646,
+        "gripper_normalized_mse": 0.02530366062620888,
+        "gripper_rmse": 0.06044715737814017,
+        "normalized_group_equal_mse": 0.034795956852976595,
+        "xyz_component_mae": [
+          0.002692814777261014,
+          0.002173941892157599,
+          0.001041208071496716
+        ],
+        "xyz_component_mse": [
+          1.650869834964247e-05,
+          1.2707776596508697e-05,
+          7.420948844740915e-06
+        ],
+        "xyz_component_rmse": [
+          0.004063089754071705,
+          0.0035647968520672673,
+          0.002724141854739014
+        ],
+        "xyz_euclidean_mse": 3.663742379089208e-05,
+        "xyz_euclidean_rmse": 0.006052885575565763,
+        "xyz_mae": 0.0019693215803051095,
+        "xyz_mse": 1.2212474596964026e-05,
+        "xyz_normalized_mse": 0.0504629440652849,
+        "xyz_rmse": 0.003494635116426896
+      },
+      "5": {
+        "actual_valid_steps": 5.0,
+        "euler_component_mae": [
+          0.0008060877670619576,
+          0.0005767680405334436,
+          0.00031752962137114365
+        ],
+        "euler_component_mse": [
+          3.4218912127575533e-06,
+          1.7987308132073517e-06,
+          3.867702838383643e-07
+        ],
+        "euler_component_rmse": [
+          0.0018498354555899162,
+          0.0013411677051015476,
+          0.0006219085815763956
+        ],
+        "euler_mae": 0.0005667951429888483,
+        "euler_mse": 1.8691307699344225e-06,
+        "euler_normalized_mse": 0.03272214898538599,
+        "euler_rmse": 0.0013671615741873463,
+        "gripper_component_mae": [
+          0.014111975798902266
+        ],
+        "gripper_component_mse": [
+          0.0006590058786183359
+        ],
+        "gripper_component_rmse": [
+          0.025671109804960436
+        ],
+        "gripper_mae": 0.014111975798902266,
+        "gripper_mse": 0.0006590058786183359,
+        "gripper_normalized_mse": 0.004563740284859093,
+        "gripper_rmse": 0.025671109804960436,
+        "normalized_group_equal_mse": 0.019739475179539005,
+        "xyz_component_mae": [
+          0.0016588522727150254,
+          0.0012979227948164231,
+          0.0006971364999425585
+        ],
+        "xyz_component_mse": [
+          7.279189204717371e-06,
+          6.1680675564406874e-06,
+          2.349221294680569e-06
+        ],
+        "xyz_component_rmse": [
+          0.0026979972581004175,
+          0.002483559452970814,
+          0.0015327169649614271
+        ],
+        "xyz_euclidean_mse": 1.5796478055838628e-05,
+        "xyz_euclidean_rmse": 0.0039744783375732,
+        "xyz_mae": 0.0012179705224913359,
+        "xyz_mse": 5.265492685279542e-06,
+        "xyz_normalized_mse": 0.021932536268371935,
+        "xyz_rmse": 0.0022946661380862233
+      },
+      "50": {
+        "actual_valid_steps": 36.66666666666666,
+        "euler_component_mae": [
+          0.0012601988125035025,
+          0.0010017545646959533,
+          0.000492228417613653
+        ],
+        "euler_component_mse": [
+          8.407299975686793e-06,
+          4.610681334061734e-06,
+          8.700041198244482e-07
+        ],
+        "euler_component_rmse": [
+          0.002899534441196861,
+          0.0021472497139507865,
+          0.0009327401137639832
+        ],
+        "euler_mae": 0.0009180605982710363,
+        "euler_mse": 4.6293284765243255e-06,
+        "euler_normalized_mse": 0.07820133924615125,
+        "euler_rmse": 0.0021515874317638885,
+        "gripper_component_mae": [
+          0.04559979776303192
+        ],
+        "gripper_component_mse": [
+          0.017255367681460063
+        ],
+        "gripper_component_rmse": [
+          0.13135968819032748
+        ],
+        "gripper_mae": 0.04559979776303192,
+        "gripper_mse": 0.017255367681460063,
+        "gripper_normalized_mse": 0.11949667075847929,
+        "gripper_rmse": 0.13135968819032748,
+        "normalized_group_equal_mse": 0.09092547652915597,
+        "xyz_component_mae": [
+          0.0028189392356008382,
+          0.0021463394431987188,
+          0.0024866611108589646
+        ],
+        "xyz_component_mse": [
+          2.0679616542070262e-05,
+          1.2790747230886356e-05,
+          2.2265344367684523e-05
+        ],
+        "xyz_component_rmse": [
+          0.004547484639014217,
+          0.0035764154164311442,
+          0.004718616785423936
+        ],
+        "xyz_euclidean_mse": 5.5735708140641145e-05,
+        "xyz_euclidean_rmse": 0.0074656351464989995,
+        "xyz_mae": 0.002483979929886174,
+        "xyz_mse": 1.8578569380213717e-05,
+        "xyz_normalized_mse": 0.07507841958283742,
+        "xyz_rmse": 0.004310286461502729
+      }
+    },
+    "selection_score": 0.02084955588842887,
+    "valid_steps": 36.66666666666666
+  },
+  "validation_input_and_noise_sha256": "ce8d173d18889409540018db29c797989e5469d63b52aff178f6360cd9ec1396",
+  "flow_matching_element_weighted": {
+    "numerator": 1695.7154487743974,
+    "valid_element_count": 15400.0,
+    "loss": 0.11011139277755827,
+    "primary_report": "dataset_metrics.flow_matching_loss is episode-balanced"
+  },
+  "point_horizon_coverage": {
+    "1": {
+      "block_seed_count": 60,
+      "episode_count": 20
+    },
+    "5": {
+      "block_seed_count": 60,
+      "episode_count": 20
+    },
+    "10": {
+      "block_seed_count": 60,
+      "episode_count": 20
+    },
+    "20": {
+      "block_seed_count": 40,
+      "episode_count": 20
+    },
+    "50": {
+      "block_seed_count": 40,
+      "episode_count": 20
+    }
+  },
+  "task_phase": "UNKNOWN",
+  "test_split_used": false,
+  "elapsed_seconds": 20.803198483015876,
+  "publication_note": "Per-episode detailed metrics omitted; aggregate scores/counts/protocol unchanged."
+}

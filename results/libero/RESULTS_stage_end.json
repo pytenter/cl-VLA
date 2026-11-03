@@ -1,0 +1,984 @@
+{
+  "schema": "pi05-libero-stage-end-metrics-v1",
+  "status": "calculated",
+  "task_order": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "training_seed": 42,
+  "single_training_seed": true,
+  "metrics_reference": "https://arxiv.org/html/2602.10503v1#S5.SS3.SSS1",
+  "reference_section": "V-C.1, Evaluation Protocols (stage-end matrix definitions)",
+  "screenshot_formula_verified": false,
+  "formulas": {
+    "S_i_j": "success rate on task j after completing stage i; indices1..K; K=4",
+    "FWT": "(1/K) sum_j S_j_j",
+    "AUC": "(1/K) sum_j [(1/(K-j+1)) sum_{i=j..K} S_i_j]",
+    "NBT": "(1/K) sum_{j=1..K-1} [(1/(K-j)) sum_{i=j+1..K} (S_j_j-S_i_j)]",
+    "NBT_last_task_convention": "0; final task has no later stage. Included in K-task outer mean.",
+    "NBT_direction": "lower is better; negative denotes improvement on previously learned tasks"
+  },
+  "limitations": [
+    "Screenshot names metrics but provides no formula; this calculation states its adopted definitions explicitly.",
+    "These are four-task stage-end metrics, not the original LIBERO within-task learning-curve FWT/AUC.",
+    "No unlearned upper-triangular entries are filled with zero.",
+    "No multi-seed mean, standard deviation, or statistical significance is inferred.",
+    "Plain-LoRA prototype replay uses fixed prototype samples selected by the CL-LoRA prototype run."
+  ],
+  "sources": [
+    {
+      "path": "fourway.json",
+      "sha256": "e1905950084a5211d14582d9df7546ead4a69c7a54eac92c011d1f79e86eadd0"
+    },
+    {
+      "path": "plain_prototype.json",
+      "sha256": "fc71f08c9b78b1d609e65cbb10693eb52544fdaa0b4442e0b00b9efda8f7d1d7"
+    }
+  ],
+  "groups": [
+    {
+      "configuration": "plain",
+      "name_zh": "普通 LoRA，无回放",
+      "source": "fourway.json",
+      "measured_cells": [
+        {
+          "stage": "A",
+          "task": "A",
+          "successes": 40,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "A",
+          "successes": 0,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "B",
+          "successes": 43,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "A",
+          "successes": 0,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "B",
+          "successes": 0,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "C",
+          "successes": 49,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "A",
+          "successes": 0,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "B",
+          "successes": 0,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "C",
+          "successes": 0,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "D",
+          "successes": 49,
+          "episodes": 50
+        }
+      ],
+      "success_rate_matrix_percent": [
+        [
+          80.0,
+          null,
+          null,
+          null
+        ],
+        [
+          0.0,
+          86.0,
+          null,
+          null
+        ],
+        [
+          0.0,
+          0.0,
+          98.0,
+          null
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          98.0
+        ]
+      ],
+      "AUC_percent": {
+        "value": 48.916666666666664,
+        "display": "48.92",
+        "exact_percentage_fraction": "587/12"
+      },
+      "FWT_percent": {
+        "value": 90.5,
+        "display": "90.50",
+        "exact_percentage_fraction": "181/2"
+      },
+      "NBT_percentage_points": {
+        "value": 66.0,
+        "display": "66.00",
+        "exact_percentage_fraction": "66"
+      },
+      "final_average_percent": {
+        "value": 24.5,
+        "display": "24.50",
+        "exact_percentage_fraction": "49/2"
+      },
+      "per_task": {
+        "A": {
+          "initial_success_percent": {
+            "value": 80.0,
+            "display": "80.00",
+            "exact_percentage_fraction": "80"
+          },
+          "AUC_percent": {
+            "value": 20.0,
+            "display": "20.00",
+            "exact_percentage_fraction": "20"
+          },
+          "NBT_percentage_points": {
+            "value": 80.0,
+            "display": "80.00",
+            "exact_percentage_fraction": "80"
+          }
+        },
+        "B": {
+          "initial_success_percent": {
+            "value": 86.0,
+            "display": "86.00",
+            "exact_percentage_fraction": "86"
+          },
+          "AUC_percent": {
+            "value": 28.666666666666668,
+            "display": "28.67",
+            "exact_percentage_fraction": "86/3"
+          },
+          "NBT_percentage_points": {
+            "value": 86.0,
+            "display": "86.00",
+            "exact_percentage_fraction": "86"
+          }
+        },
+        "C": {
+          "initial_success_percent": {
+            "value": 98.0,
+            "display": "98.00",
+            "exact_percentage_fraction": "98"
+          },
+          "AUC_percent": {
+            "value": 49.0,
+            "display": "49.00",
+            "exact_percentage_fraction": "49"
+          },
+          "NBT_percentage_points": {
+            "value": 98.0,
+            "display": "98.00",
+            "exact_percentage_fraction": "98"
+          }
+        },
+        "D": {
+          "initial_success_percent": {
+            "value": 98.0,
+            "display": "98.00",
+            "exact_percentage_fraction": "98"
+          },
+          "AUC_percent": {
+            "value": 98.0,
+            "display": "98.00",
+            "exact_percentage_fraction": "98"
+          },
+          "NBT_percentage_points": {
+            "value": 0.0,
+            "display": "0.00",
+            "exact_percentage_fraction": "0"
+          }
+        }
+      },
+      "alternative_NBT_prior_tasks_only_percentage_points": {
+        "value": 88.0,
+        "display": "88.00",
+        "exact_percentage_fraction": "88"
+      }
+    },
+    {
+      "configuration": "noreplay",
+      "name_zh": "CL-LoRA，无回放",
+      "source": "fourway.json",
+      "measured_cells": [
+        {
+          "stage": "A",
+          "task": "A",
+          "successes": 33,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "A",
+          "successes": 7,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "B",
+          "successes": 42,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "A",
+          "successes": 2,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "B",
+          "successes": 41,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "C",
+          "successes": 39,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "A",
+          "successes": 4,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "B",
+          "successes": 38,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "C",
+          "successes": 45,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "D",
+          "successes": 50,
+          "episodes": 50
+        }
+      ],
+      "success_rate_matrix_percent": [
+        [
+          66.0,
+          null,
+          null,
+          null
+        ],
+        [
+          14.0,
+          84.0,
+          null,
+          null
+        ],
+        [
+          4.0,
+          82.0,
+          78.0,
+          null
+        ],
+        [
+          8.0,
+          76.0,
+          90.0,
+          100.0
+        ]
+      ],
+      "AUC_percent": {
+        "value": 71.91666666666667,
+        "display": "71.92",
+        "exact_percentage_fraction": "863/12"
+      },
+      "FWT_percent": {
+        "value": 82.0,
+        "display": "82.00",
+        "exact_percentage_fraction": "82"
+      },
+      "NBT_percentage_points": {
+        "value": 12.583333333333334,
+        "display": "12.58",
+        "exact_percentage_fraction": "151/12"
+      },
+      "final_average_percent": {
+        "value": 68.5,
+        "display": "68.50",
+        "exact_percentage_fraction": "137/2"
+      },
+      "per_task": {
+        "A": {
+          "initial_success_percent": {
+            "value": 66.0,
+            "display": "66.00",
+            "exact_percentage_fraction": "66"
+          },
+          "AUC_percent": {
+            "value": 23.0,
+            "display": "23.00",
+            "exact_percentage_fraction": "23"
+          },
+          "NBT_percentage_points": {
+            "value": 57.333333333333336,
+            "display": "57.33",
+            "exact_percentage_fraction": "172/3"
+          }
+        },
+        "B": {
+          "initial_success_percent": {
+            "value": 84.0,
+            "display": "84.00",
+            "exact_percentage_fraction": "84"
+          },
+          "AUC_percent": {
+            "value": 80.66666666666667,
+            "display": "80.67",
+            "exact_percentage_fraction": "242/3"
+          },
+          "NBT_percentage_points": {
+            "value": 5.0,
+            "display": "5.00",
+            "exact_percentage_fraction": "5"
+          }
+        },
+        "C": {
+          "initial_success_percent": {
+            "value": 78.0,
+            "display": "78.00",
+            "exact_percentage_fraction": "78"
+          },
+          "AUC_percent": {
+            "value": 84.0,
+            "display": "84.00",
+            "exact_percentage_fraction": "84"
+          },
+          "NBT_percentage_points": {
+            "value": -12.0,
+            "display": "-12.00",
+            "exact_percentage_fraction": "-12"
+          }
+        },
+        "D": {
+          "initial_success_percent": {
+            "value": 100.0,
+            "display": "100.00",
+            "exact_percentage_fraction": "100"
+          },
+          "AUC_percent": {
+            "value": 100.0,
+            "display": "100.00",
+            "exact_percentage_fraction": "100"
+          },
+          "NBT_percentage_points": {
+            "value": 0.0,
+            "display": "0.00",
+            "exact_percentage_fraction": "0"
+          }
+        }
+      },
+      "alternative_NBT_prior_tasks_only_percentage_points": {
+        "value": 16.77777777777778,
+        "display": "16.78",
+        "exact_percentage_fraction": "151/9"
+      }
+    },
+    {
+      "configuration": "prototype",
+      "name_zh": "CL-LoRA＋原型回放",
+      "source": "fourway.json",
+      "measured_cells": [
+        {
+          "stage": "A",
+          "task": "A",
+          "successes": 38,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "A",
+          "successes": 43,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "B",
+          "successes": 37,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "A",
+          "successes": 44,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "B",
+          "successes": 45,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "C",
+          "successes": 39,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "A",
+          "successes": 45,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "B",
+          "successes": 47,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "C",
+          "successes": 40,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "D",
+          "successes": 50,
+          "episodes": 50
+        }
+      ],
+      "success_rate_matrix_percent": [
+        [
+          76.0,
+          null,
+          null,
+          null
+        ],
+        [
+          86.0,
+          74.0,
+          null,
+          null
+        ],
+        [
+          88.0,
+          90.0,
+          78.0,
+          null
+        ],
+        [
+          90.0,
+          94.0,
+          80.0,
+          100.0
+        ]
+      ],
+      "AUC_percent": {
+        "value": 87.5,
+        "display": "87.50",
+        "exact_percentage_fraction": "175/2"
+      },
+      "FWT_percent": {
+        "value": 82.0,
+        "display": "82.00",
+        "exact_percentage_fraction": "82"
+      },
+      "NBT_percentage_points": {
+        "value": -8.0,
+        "display": "-8.00",
+        "exact_percentage_fraction": "-8"
+      },
+      "final_average_percent": {
+        "value": 91.0,
+        "display": "91.00",
+        "exact_percentage_fraction": "91"
+      },
+      "per_task": {
+        "A": {
+          "initial_success_percent": {
+            "value": 76.0,
+            "display": "76.00",
+            "exact_percentage_fraction": "76"
+          },
+          "AUC_percent": {
+            "value": 85.0,
+            "display": "85.00",
+            "exact_percentage_fraction": "85"
+          },
+          "NBT_percentage_points": {
+            "value": -12.0,
+            "display": "-12.00",
+            "exact_percentage_fraction": "-12"
+          }
+        },
+        "B": {
+          "initial_success_percent": {
+            "value": 74.0,
+            "display": "74.00",
+            "exact_percentage_fraction": "74"
+          },
+          "AUC_percent": {
+            "value": 86.0,
+            "display": "86.00",
+            "exact_percentage_fraction": "86"
+          },
+          "NBT_percentage_points": {
+            "value": -18.0,
+            "display": "-18.00",
+            "exact_percentage_fraction": "-18"
+          }
+        },
+        "C": {
+          "initial_success_percent": {
+            "value": 78.0,
+            "display": "78.00",
+            "exact_percentage_fraction": "78"
+          },
+          "AUC_percent": {
+            "value": 79.0,
+            "display": "79.00",
+            "exact_percentage_fraction": "79"
+          },
+          "NBT_percentage_points": {
+            "value": -2.0,
+            "display": "-2.00",
+            "exact_percentage_fraction": "-2"
+          }
+        },
+        "D": {
+          "initial_success_percent": {
+            "value": 100.0,
+            "display": "100.00",
+            "exact_percentage_fraction": "100"
+          },
+          "AUC_percent": {
+            "value": 100.0,
+            "display": "100.00",
+            "exact_percentage_fraction": "100"
+          },
+          "NBT_percentage_points": {
+            "value": 0.0,
+            "display": "0.00",
+            "exact_percentage_fraction": "0"
+          }
+        }
+      },
+      "alternative_NBT_prior_tasks_only_percentage_points": {
+        "value": -10.666666666666666,
+        "display": "-10.67",
+        "exact_percentage_fraction": "-32/3"
+      }
+    },
+    {
+      "configuration": "uniform",
+      "name_zh": "CL-LoRA＋均匀回放（ER）",
+      "source": "fourway.json",
+      "measured_cells": [
+        {
+          "stage": "A",
+          "task": "A",
+          "successes": 36,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "A",
+          "successes": 42,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "B",
+          "successes": 39,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "A",
+          "successes": 44,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "B",
+          "successes": 44,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "C",
+          "successes": 42,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "A",
+          "successes": 42,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "B",
+          "successes": 39,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "C",
+          "successes": 44,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "D",
+          "successes": 49,
+          "episodes": 50
+        }
+      ],
+      "success_rate_matrix_percent": [
+        [
+          72.0,
+          null,
+          null,
+          null
+        ],
+        [
+          84.0,
+          78.0,
+          null,
+          null
+        ],
+        [
+          88.0,
+          88.0,
+          84.0,
+          null
+        ],
+        [
+          84.0,
+          78.0,
+          88.0,
+          98.0
+        ]
+      ],
+      "AUC_percent": {
+        "value": 86.83333333333333,
+        "display": "86.83",
+        "exact_percentage_fraction": "521/6"
+      },
+      "FWT_percent": {
+        "value": 83.0,
+        "display": "83.00",
+        "exact_percentage_fraction": "83"
+      },
+      "NBT_percentage_points": {
+        "value": -5.583333333333333,
+        "display": "-5.58",
+        "exact_percentage_fraction": "-67/12"
+      },
+      "final_average_percent": {
+        "value": 87.0,
+        "display": "87.00",
+        "exact_percentage_fraction": "87"
+      },
+      "per_task": {
+        "A": {
+          "initial_success_percent": {
+            "value": 72.0,
+            "display": "72.00",
+            "exact_percentage_fraction": "72"
+          },
+          "AUC_percent": {
+            "value": 82.0,
+            "display": "82.00",
+            "exact_percentage_fraction": "82"
+          },
+          "NBT_percentage_points": {
+            "value": -13.333333333333334,
+            "display": "-13.33",
+            "exact_percentage_fraction": "-40/3"
+          }
+        },
+        "B": {
+          "initial_success_percent": {
+            "value": 78.0,
+            "display": "78.00",
+            "exact_percentage_fraction": "78"
+          },
+          "AUC_percent": {
+            "value": 81.33333333333333,
+            "display": "81.33",
+            "exact_percentage_fraction": "244/3"
+          },
+          "NBT_percentage_points": {
+            "value": -5.0,
+            "display": "-5.00",
+            "exact_percentage_fraction": "-5"
+          }
+        },
+        "C": {
+          "initial_success_percent": {
+            "value": 84.0,
+            "display": "84.00",
+            "exact_percentage_fraction": "84"
+          },
+          "AUC_percent": {
+            "value": 86.0,
+            "display": "86.00",
+            "exact_percentage_fraction": "86"
+          },
+          "NBT_percentage_points": {
+            "value": -4.0,
+            "display": "-4.00",
+            "exact_percentage_fraction": "-4"
+          }
+        },
+        "D": {
+          "initial_success_percent": {
+            "value": 98.0,
+            "display": "98.00",
+            "exact_percentage_fraction": "98"
+          },
+          "AUC_percent": {
+            "value": 98.0,
+            "display": "98.00",
+            "exact_percentage_fraction": "98"
+          },
+          "NBT_percentage_points": {
+            "value": 0.0,
+            "display": "0.00",
+            "exact_percentage_fraction": "0"
+          }
+        }
+      },
+      "alternative_NBT_prior_tasks_only_percentage_points": {
+        "value": -7.444444444444445,
+        "display": "-7.44",
+        "exact_percentage_fraction": "-67/9"
+      }
+    },
+    {
+      "configuration": "plain_prototype",
+      "name_zh": "普通 LoRA＋原型回放",
+      "source": "plain_prototype.json",
+      "measured_cells": [
+        {
+          "stage": "A",
+          "task": "A",
+          "successes": 45,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "A",
+          "successes": 32,
+          "episodes": 50
+        },
+        {
+          "stage": "B",
+          "task": "B",
+          "successes": 42,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "A",
+          "successes": 38,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "B",
+          "successes": 43,
+          "episodes": 50
+        },
+        {
+          "stage": "C",
+          "task": "C",
+          "successes": 47,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "A",
+          "successes": 36,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "B",
+          "successes": 46,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "C",
+          "successes": 48,
+          "episodes": 50
+        },
+        {
+          "stage": "D",
+          "task": "D",
+          "successes": 50,
+          "episodes": 50
+        }
+      ],
+      "success_rate_matrix_percent": [
+        [
+          90.0,
+          null,
+          null,
+          null
+        ],
+        [
+          64.0,
+          84.0,
+          null,
+          null
+        ],
+        [
+          76.0,
+          86.0,
+          94.0,
+          null
+        ],
+        [
+          72.0,
+          92.0,
+          96.0,
+          100.0
+        ]
+      ],
+      "AUC_percent": {
+        "value": 89.45833333333333,
+        "display": "89.46",
+        "exact_percentage_fraction": "2147/24"
+      },
+      "FWT_percent": {
+        "value": 92.0,
+        "display": "92.00",
+        "exact_percentage_fraction": "92"
+      },
+      "NBT_percentage_points": {
+        "value": 3.0833333333333335,
+        "display": "3.08",
+        "exact_percentage_fraction": "37/12"
+      },
+      "final_average_percent": {
+        "value": 90.0,
+        "display": "90.00",
+        "exact_percentage_fraction": "90"
+      },
+      "per_task": {
+        "A": {
+          "initial_success_percent": {
+            "value": 90.0,
+            "display": "90.00",
+            "exact_percentage_fraction": "90"
+          },
+          "AUC_percent": {
+            "value": 75.5,
+            "display": "75.50",
+            "exact_percentage_fraction": "151/2"
+          },
+          "NBT_percentage_points": {
+            "value": 19.333333333333332,
+            "display": "19.33",
+            "exact_percentage_fraction": "58/3"
+          }
+        },
+        "B": {
+          "initial_success_percent": {
+            "value": 84.0,
+            "display": "84.00",
+            "exact_percentage_fraction": "84"
+          },
+          "AUC_percent": {
+            "value": 87.33333333333333,
+            "display": "87.33",
+            "exact_percentage_fraction": "262/3"
+          },
+          "NBT_percentage_points": {
+            "value": -5.0,
+            "display": "-5.00",
+            "exact_percentage_fraction": "-5"
+          }
+        },
+        "C": {
+          "initial_success_percent": {
+            "value": 94.0,
+            "display": "94.00",
+            "exact_percentage_fraction": "94"
+          },
+          "AUC_percent": {
+            "value": 95.0,
+            "display": "95.00",
+            "exact_percentage_fraction": "95"
+          },
+          "NBT_percentage_points": {
+            "value": -2.0,
+            "display": "-2.00",
+            "exact_percentage_fraction": "-2"
+          }
+        },
+        "D": {
+          "initial_success_percent": {
+            "value": 100.0,
+            "display": "100.00",
+            "exact_percentage_fraction": "100"
+          },
+          "AUC_percent": {
+            "value": 100.0,
+            "display": "100.00",
+            "exact_percentage_fraction": "100"
+          },
+          "NBT_percentage_points": {
+            "value": 0.0,
+            "display": "0.00",
+            "exact_percentage_fraction": "0"
+          }
+        }
+      },
+      "alternative_NBT_prior_tasks_only_percentage_points": {
+        "value": 4.111111111111111,
+        "display": "4.11",
+        "exact_percentage_fraction": "37/9"
+      }
+    }
+  ],
+  "source_files_unchanged": true,
+  "training_or_robot_execution": false
+}
