@@ -1,0 +1,171 @@
+{
+  "protocol": "pi05-libero-plain-prototype-supervisor-v1",
+  "status": "complete",
+  "updated_at": "2026-11-02T07:57:36.371025+00:00",
+  "groups": {
+    "plain_prototype": {
+      "success_rate_matrix": {
+        "A": {
+          "A": 0.9,
+          "B": null,
+          "C": null,
+          "D": null
+        },
+        "B": {
+          "A": 0.64,
+          "B": 0.84,
+          "C": null,
+          "D": null
+        },
+        "C": {
+          "A": 0.76,
+          "B": 0.86,
+          "C": 0.94,
+          "D": null
+        },
+        "D": {
+          "A": 0.72,
+          "B": 0.92,
+          "C": 0.96,
+          "D": 1.0
+        }
+      },
+      "final_average": 0.9,
+      "final_old_task_average": 0.8666666666666667,
+      "backward_transfer": -0.026666666666666655
+    }
+  },
+  "evaluations": {
+    "plain_prototype": {
+      "A/A": {
+        "successes": 45,
+        "episodes": 50,
+        "success_rate": 0.9,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_A/task_A/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_A/seed42/10000/params"
+      },
+      "B/A": {
+        "successes": 32,
+        "episodes": 50,
+        "success_rate": 0.64,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_B/task_A/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_B/seed42/10000/params"
+      },
+      "B/B": {
+        "successes": 42,
+        "episodes": 50,
+        "success_rate": 0.84,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_B/task_B/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_B/seed42/10000/params"
+      },
+      "C/A": {
+        "successes": 38,
+        "episodes": 50,
+        "success_rate": 0.76,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_C/task_A/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_C/seed42/10000/params"
+      },
+      "C/B": {
+        "successes": 43,
+        "episodes": 50,
+        "success_rate": 0.86,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_C/task_B/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_C/seed42/10000/params"
+      },
+      "C/C": {
+        "successes": 47,
+        "episodes": 50,
+        "success_rate": 0.94,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_C/task_C/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_C/seed42/10000/params"
+      },
+      "D/A": {
+        "successes": 36,
+        "episodes": 50,
+        "success_rate": 0.72,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_D/task_A/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_D/seed42/10000/params"
+      },
+      "D/B": {
+        "successes": 46,
+        "episodes": 50,
+        "success_rate": 0.92,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_D/task_B/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_D/seed42/10000/params"
+      },
+      "D/C": {
+        "successes": 48,
+        "episodes": 50,
+        "success_rate": 0.96,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_D/task_C/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_D/seed42/10000/params"
+      },
+      "D/D": {
+        "successes": 50,
+        "episodes": 50,
+        "success_rate": 1.0,
+        "evaluation_json": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/evaluations/plain_prototype/stage_D/task_D/attempt_20261102T021811Z_8f5208/evaluation.json",
+        "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_D/seed42/10000/params"
+      }
+    }
+  },
+  "completed_evaluations": 10,
+  "expected_evaluations": 10,
+  "invalid_results": [],
+  "training_seed": 42,
+  "training": {
+    "plain_prototype/A": {
+      "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_A/seed42/10000/params",
+      "steps": 10000,
+      "batch_size": 2,
+      "completion_marker": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/reports/pi05_libero_plain_prototype_A_complete.json"
+    },
+    "plain_prototype/B": {
+      "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_B/seed42/10000/params",
+      "steps": 10000,
+      "batch_size": 2,
+      "completion_marker": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/reports/pi05_libero_plain_prototype_B_complete.json"
+    },
+    "plain_prototype/C": {
+      "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_C/seed42/10000/params",
+      "steps": 10000,
+      "batch_size": 2,
+      "completion_marker": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/reports/pi05_libero_plain_prototype_C_complete.json"
+    },
+    "plain_prototype/D": {
+      "checkpoint": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/checkpoints/pi05_libero_plain_prototype_D/seed42/10000/params",
+      "steps": 10000,
+      "batch_size": 2,
+      "completion_marker": "<LIBERO_PLAIN_PROTOTYPE_ROOT>/reports/pi05_libero_plain_prototype_D_complete.json"
+    }
+  },
+  "completed_training_stages": 4,
+  "expected_training_stages": 4,
+  "invalid_training": [],
+  "evaluation_seed": 7,
+  "policy_seed": 0,
+  "trials_per_task": 50,
+  "tasks": {
+    "A": [
+      "libero_spatial",
+      6,
+      "pick up the black bowl next to the cookie box and place it on the plate"
+    ],
+    "B": [
+      "libero_spatial",
+      0,
+      "pick up the black bowl between the plate and the ramekin and place it on the plate"
+    ],
+    "C": [
+      "libero_object",
+      8,
+      "pick up the chocolate pudding and place it in the basket"
+    ],
+    "D": [
+      "libero_goal",
+      7,
+      "turn on the stove"
+    ]
+  },
+  "scope": "single training seed; fixed 50 simulator initial states per task, no confidence claim across training seeds"
+}

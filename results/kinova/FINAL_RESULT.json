@@ -1,0 +1,116 @@
+{
+  "status": "complete",
+  "completed_at": "2026-11-03T04:06:57.842535+00:00",
+  "verified_at": "2026-11-03T12:12:12.463223",
+  "root": "<KINOVA_ROOT>",
+  "model": "pi0.5 ordinary LoRA, Kinova Gen3 wrist-only, D0 single task offline pilot",
+  "effective_optimizer_steps": 2000,
+  "source_prefix_updates": 500,
+  "new_updates_in_this_run": 1500,
+  "actual_batch": 1,
+  "gradient_accumulation": 4,
+  "effective_batch": 4,
+  "seed": 42,
+  "checkpoints": [
+    500,
+    1000,
+    1500,
+    2000
+  ],
+  "selected_checkpoint": "<KINOVA_ROOT>/checkpoints/E1_wrist_pilot/seed42/2000",
+  "selected_params": "<KINOVA_ROOT>/checkpoints/E1_wrist_pilot/seed42/2000/params",
+  "selection_metric": "first10_valid_normalized_group_equal_mse (lower is better)",
+  "validation_error_reduction_percent": 93.7844947296415,
+  "evaluations": [
+    {
+      "step": 0,
+      "score": 0.33544426368455615,
+      "xyz_component_rmse_mm": 9.444740787822333,
+      "euler_component_rmse_deg": 0.3259643939900072,
+      "gripper_rmse_percentage_points": 17.549738980971252,
+      "summary": "<KINOVA_ROOT>/evaluations/E0_wrist_frozen/summary.json",
+      "validation_records": 60,
+      "validation_episodes": 20,
+      "plan_sha256": "c1ce3d170df3df56dba4c63ae7ea17a3b46c00ffade7779f86026d8d8b5708d1",
+      "validation_input_and_noise_sha256": "ce8d173d18889409540018db29c797989e5469d63b52aff178f6360cd9ec1396"
+    },
+    {
+      "step": 500,
+      "score": 0.05594601002259249,
+      "xyz_component_rmse_mm": 4.5523889592566755,
+      "euler_component_rmse_deg": 0.1091709906864042,
+      "gripper_rmse_percentage_points": 5.788763757408341,
+      "summary": "<KINOVA_ROOT>/evaluations/E1_wrist_pilot/step_500/summary.json",
+      "validation_records": 60,
+      "validation_episodes": 20,
+      "plan_sha256": "c1ce3d170df3df56dba4c63ae7ea17a3b46c00ffade7779f86026d8d8b5708d1",
+      "validation_input_and_noise_sha256": "ce8d173d18889409540018db29c797989e5469d63b52aff178f6360cd9ec1396"
+    },
+    {
+      "step": 1000,
+      "score": 0.03719424484054906,
+      "xyz_component_rmse_mm": 3.6614725546092006,
+      "euler_component_rmse_deg": 0.09202328825976182,
+      "gripper_rmse_percentage_points": 4.082709675207427,
+      "summary": "<KINOVA_ROOT>/evaluations/E1_wrist_pilot/step_1000/summary.json",
+      "validation_records": 60,
+      "validation_episodes": 20,
+      "plan_sha256": "c1ce3d170df3df56dba4c63ae7ea17a3b46c00ffade7779f86026d8d8b5708d1",
+      "validation_input_and_noise_sha256": "ce8d173d18889409540018db29c797989e5469d63b52aff178f6360cd9ec1396"
+    },
+    {
+      "step": 1500,
+      "score": 0.03219565918829771,
+      "xyz_component_rmse_mm": 3.723572733124425,
+      "euler_component_rmse_deg": 0.07552523302122294,
+      "gripper_rmse_percentage_points": 3.026606458811949,
+      "summary": "<KINOVA_ROOT>/evaluations/E1_wrist_pilot/step_1500/summary.json",
+      "validation_records": 60,
+      "validation_episodes": 20,
+      "plan_sha256": "c1ce3d170df3df56dba4c63ae7ea17a3b46c00ffade7779f86026d8d8b5708d1",
+      "validation_input_and_noise_sha256": "ce8d173d18889409540018db29c797989e5469d63b52aff178f6360cd9ec1396"
+    },
+    {
+      "step": 2000,
+      "score": 0.02084955588842887,
+      "xyz_component_rmse_mm": 2.8113356042425623,
+      "euler_component_rmse_deg": 0.06689981240522164,
+      "gripper_rmse_percentage_points": 2.658132278918901,
+      "summary": "<KINOVA_ROOT>/evaluations/E1_wrist_pilot/step_2000/summary.json",
+      "validation_records": 60,
+      "validation_episodes": 20,
+      "plan_sha256": "c1ce3d170df3df56dba4c63ae7ea17a3b46c00ffade7779f86026d8d8b5708d1",
+      "validation_input_and_noise_sha256": "ce8d173d18889409540018db29c797989e5469d63b52aff178f6360cd9ec1396"
+    }
+  ],
+  "final_independent_CPU_restore_checks": {
+    "step2000": true,
+    "all132_state_arrays_present": true,
+    "all_state_arrays_finite": true,
+    "all_Adam_and_schedule_counters2000": true,
+    "all43_frozen_hashes_unchanged": true,
+    "native_committed_metadata": true,
+    "checkpoint_stat_unchanged": true,
+    "CPU_backend_only": true
+  },
+  "training_trajectory_checks": {
+    "exact2000_sequential_records": true,
+    "every_update_applied": true,
+    "all_loss_grad_update_values_finite": true,
+    "all_positive_valid_elements": true,
+    "four_microbatches_per_update": true,
+    "three500_update_segments_committed": true,
+    "all_four_checkpoints_committed": true,
+    "Adam_and_schedule_counters2000": true
+  },
+  "frozen_workflow_manifest_unchanged": true,
+  "test_model_scoring_performed": false,
+  "robot_commands_sent": 0,
+  "remaining_cuda_compute_processes": "",
+  "limitations": [
+    "Offline prediction error, not robot success rate",
+    "D0:107 episodes await manual review; wrist/external synchronization UNVERIFIED; controller action API/reference frame UNKNOWN",
+    "Original post-update live-RAM parameter/Adam hashes were not captured; independent restoration is not such a comparison"
+  ],
+  "all_previous_runs_and_raw_data_preserved": true
+}

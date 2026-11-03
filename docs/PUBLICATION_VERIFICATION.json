@@ -1,0 +1,18 @@
+{
+  "scope": "Publication checks only; no GPU training was rerun",
+  "python_syntax": {
+    "version": "3.11.18",
+    "files": 180,
+    "status": "passed"
+  },
+  "shell_syntax": "passed",
+  "five_LIBERO_stage_metrics_identical_to_recorded_results": true,
+  "path_environment_override": "passed",
+  "credential_and_raw_data_scan": "passed",
+  "original_server_code_data_and_checkpoints_modified": false,
+  "target_branch": "pi0.5",
+  "notes": [
+    "Historical supervisors require their original reports/probes/checkpoints; no clean-machine one-command claim",
+    "Kinova metrics are offline action errors, not closed-loop robot success"
+  ]
+}
