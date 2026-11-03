@@ -1,0 +1,178 @@
+#!/bin/bash
+# =============================================================================
+# run_v39_replay_BCD.sh — V39 原型回放 v2: Task B → C → D 连续训练 (Stage 2-4)
+#
+# v2 修正 (v39r 教训, 详见 REPLAY_BUG_NOTES.md):
+#   v39r 实际跑成"冻结FiLM+回放", 且 every=1/weight=1.0/kd=1.0 三倍超载
+#   → 新任务 B/C/D 全被压垮 (B=0, C=0, D=0.02), 只有 A=0.9。
+#   v2: ① 显式 --freeze_film_stage2 False (回到"漂移FiLM+回放"原叙事)
+#       ② 回放降频降权 (every 1→4, weight 1.0→0.5)
+#       ③ KD 降权 (1.0→0.2, KD 也会把新任务特定层拉向旧行为)
+#
+# 目标: 无回放基线 (v39b2: A=0, B=0.24, C=0, D=0.8) 之上,
+#       用原型回放 + KD 验证旧任务保留率 (预期: 新任务正常 0.8+, 旧任务明显回升)
+#
+# 流程 (全程自动):
+#   1. 为 Task A/B/C 构建原型回放 buffer (复用训练同款 RLDS 管线, 归一化一致)
+#   2. Stage 2 (B): 从 rt_v39_taskA--30000_chkpt 续训 + A 的 buffer + KD(A teacher)
+#   3. Stage 3 (C): 从回放版 B 续训 + A+B 的 buffer + KD(B teacher)
+#   4. Stage 4 (D): 从回放版 C 续训 + A+B+C 的 buffer + KD(C teacher)
+#
+# 用法（tmux 里前台跑, 实时看输出）:
+#   cd /path/to/cl-VLA && git pull && source server_env.sh
+#   tmux new -s trainR2
+#   bash run_v39_replay_BCD.sh 2>&1 | tee train_v39_replay_BCD2.log
+#
+# 产物 (独立 run_id, 与漂移版 rt_v39_taskX / 冻结版 rt_v39f_taskX 区分):
+#   $LOGS_ROOT/replay_buffers/taskA|taskB|taskC   (原型回放 buffer)
+#   $LOGS_ROOT/rt_v39r_taskB/C/D--40000_chkpt     (回放版 checkpoint)
+# =============================================================================
+
+set -u
+
+TRAIN_DIR="/path/to/cl-VLA/openvla-oft"
+DATA_DIR="/path/to/cl-VLA/RoboTwin-main/data"
+CKPT_A="$LOGS_ROOT/rt_v39_taskA--30000_chkpt"           # Stage 1 最终 checkpoint (回放起点)
+BUFFER_ROOT="$LOGS_ROOT/replay_buffers"                 # buffer 输出目录
+
+# 使用的 GPU（物理卡号, 逗号分隔; 环境变量可覆盖, 默认 4,5,6,7 四卡）
+GPUS="${GPUS:-4,5,6,7}"
+IFS=',' read -ra GPU_ARR <<< "$GPUS"
+NPROC=${#GPU_ARR[@]}
+# 保持有效 batch=8 不变: batch_size × grad_accum × nproc = 8
+BATCH_SIZE="${BATCH_SIZE:-1}"                          # 每卡 batch (显存富余时可 2, 吞吐+30~60%)
+GRAD_ACCUM=$((8 / (BATCH_SIZE * NPROC)))
+BUILD_GPU="${GPU_ARR[0]}"                             # 建 buffer 用第一张卡
+# 从第几个 stage 开始 (2/3/4) —— 中途续跑用: START_STAGE=3 跳过已完成的 stage 2
+START_STAGE="${START_STAGE:-2}"
+
+# 回放超参 (v2 修正: v39r 的 every=1/weight=1.0/kd=1.0 三倍超载压垮新任务 B/C/D 全崩)
+NUM_EPISODES="${NUM_EPISODES:-10}"                       # 每个任务用几条轨迹建 buffer
+TOP_K="${TOP_K:-3}"                                      # 每 segment 选几帧
+REPLAY_EVERY="${REPLAY_EVERY:-4}"                        # 每 N 步算一次 replay loss (v39r=1 太密)
+REPLAY_WEIGHT="${REPLAY_WEIGHT:-0.5}"                    # 回放 loss 权重 (v39r=1.0 太重)
+KD_WEIGHT="${KD_WEIGHT:-0.2}"                            # KD 权重 (v39r=1.0 把新任务拉向旧行为)
+
+# ---------- 前置检查 ----------
+check_env() {
+    [ -n "${VLA_PATH:-}" ]  || { echo "[FAIL] VLA_PATH 未设置 —— 请先: source server_env.sh"; exit 1; }
+    [ -n "${LOGS_ROOT:-}" ] || { echo "[FAIL] LOGS_ROOT 未设置 —— 请先: source server_env.sh"; exit 1; }
+    [ -f "$VLA_PATH/config.json" ] || { echo "[FAIL] 基座模型不存在: $VLA_PATH/config.json"; exit 1; }
+}
+
+echo "================ 前置检查 ================"
+check_env
+[ -d "$CKPT_A" ] || { echo "[FAIL] Task A checkpoint 不存在: $CKPT_A"; exit 1; }
+ls "$CKPT_A"/cl_lora_adapter.pt "$CKPT_A"/cl_lora_config.json "$CKPT_A"/teacher_snapshot--30000.pt >/dev/null 2>&1 \
+    || { echo "[FAIL] Task A checkpoint 缺少 cl_lora_adapter.pt / cl_lora_config.json / teacher_snapshot--30000.pt"; exit 1; }
+echo "[OK] VLA_PATH    = $VLA_PATH"
+echo "[OK] LOGS_ROOT   = $LOGS_ROOT"
+echo "[OK] Stage1 ckpt = $CKPT_A"
+echo "[OK] GPUS        = $GPUS (NPROC=$NPROC, batch_size=$BATCH_SIZE, grad_accum=$GRAD_ACCUM, 有效batch=8, build 用 $BUILD_GPU)"
+echo "[OK] START_STAGE = $START_STAGE"
+echo "[OK] 回放超参: episodes=$NUM_EPISODES top_k=$TOP_K replay_every=$REPLAY_EVERY replay_w=$REPLAY_WEIGHT kd_w=$KD_WEIGHT"
+echo "============ 开始: 建 buffer -> Stage 2 -> 3 -> 4 (原型回放版) ============"
+
+cd "$TRAIN_DIR" || { echo "[FAIL] 目录不存在: $TRAIN_DIR"; exit 1; }
+
+# ---------- 1) 构建原型回放 buffer ----------
+# $1=task_short(A/B/C)  $2=dataset_name  $3=输出目录  $4=stats 来源 checkpoint (归一化必须与训练同源)
+build_buffer() {
+    local tag=$1 ds=$2 out=$3 stats_ckpt=$4
+    if [ -f "$out/manifest.jsonl" ] && [ -s "$out/manifest.jsonl" ] && [ "${FORCE_REBUILD:-0}" != "1" ]; then
+        echo "[SKIP] buffer 已存在: $out ($(wc -l < "$out/manifest.jsonl") samples)"
+        return 0
+    fi
+    echo "############ 构建 $tag buffer: $ds (stats from $stats_ckpt) ############"
+    CUDA_VISIBLE_DEVICES=$BUILD_GPU python vla-scripts/build_replay_buffer_robotwin.py \
+        --vla-path "$VLA_PATH" \
+        --data-root-dir datasets/rlds \
+        --dataset-name "$ds" \
+        --output-dir "$out" \
+        --stats-path "$stats_ckpt/dataset_statistics.json" \
+        --num-episodes "$NUM_EPISODES" \
+        --top-k "$TOP_K" \
+        --overwrite
+    local rc=$?
+    if [ $rc -ne 0 ]; then
+        echo "[FAIL] $tag buffer 构建失败 (exit=$rc)"
+        exit $rc
+    fi
+    echo "[OK] $tag buffer 完成: $out ($(wc -l < "$out/manifest.jsonl") samples)"
+}
+
+mkdir -p "$BUFFER_ROOT"
+# 每个任务的 buffer 用「包含该任务 stats 的 checkpoint」归一化
+build_buffer A aloha_handover_mic_clean   "$BUFFER_ROOT/taskA" "$CKPT_A"
+build_buffer B aloha_grab_roller_clean    "$BUFFER_ROOT/taskB" "$LOGS_ROOT/rt_v39_taskB--40000_chkpt"
+build_buffer C aloha_stack_bowls_two_clean "$BUFFER_ROOT/taskC" "$LOGS_ROOT/rt_v39_taskC--40000_chkpt"
+
+# ---------- 2-4) 回放训练 ----------
+# v2: 显式 --freeze_film_stage2 False —— 漂移 FiLM (v39r 意外跑成冻结版, 这里回到原叙事)
+COMMON_ARGS=(--batch_size "$BATCH_SIZE" --grad_accumulation_steps "$GRAD_ACCUM" --learning_rate 5e-4
+  --lr_warmup_steps 200 --num_steps_before_decay 100000
+  --use_cl_lora True --lora_rank 16 --shared_depth 8 --first_lora_layer 16
+  --orthogonal_init True --freeze_a True --use_block_scale True --freeze_specific_a True
+  --image_aug True --use_proprio True --use_film True --num_images_in_input 3
+  --use_kd True --use_replay True --freeze_film_stage2 False
+  --replay_every_n_steps "$REPLAY_EVERY" --replay_loss_weight "$REPLAY_WEIGHT" --lambda_kd "$KD_WEIGHT")
+
+run_replay_stage() {  # $1=stage  $2=dataset  $3=run_id  $4=prev_dir  $5=prev_step  $6=teacher_dir  $7=teacher_step  $8..=buffer_dirs
+    local stage=$1 ds=$2 rid=$3 prev_dir=$4 prev_step=$5 tdir=$6 tstep=$7
+    shift 7
+    local buffers_csv
+    buffers_csv=$(IFS=,; echo "$*")   # 多个 buffer 目录逗号拼接 (draccus List[str] 不可靠, 用 str)
+    echo ""
+    echo "############ Stage $stage : $ds ############"
+    echo "    replay buffers: $buffers_csv"
+    echo "    teacher: $tdir/teacher_snapshot--$tstep.pt"
+    env CUDA_VISIBLE_DEVICES=$GPUS PYTORCH_ALLOC_CONF=expandable_segments:True WANDB_MODE=offline \
+    torchrun --standalone --nproc_per_node $NPROC vla-scripts/train_cl_lora.py \
+        --run_root_dir "$LOGS_ROOT" --run_id_override "$rid" \
+        --max_steps 40000 --save_freq 10000 \
+        --vla_path "$VLA_PATH" \
+        --dataset_name "$ds" \
+        --stage "$stage" \
+        --previous_checkpoint_dir "$prev_dir" \
+        --previous_checkpoint_step "$prev_step" \
+        --teacher_checkpoint_dir "$tdir" --teacher_checkpoint_step "$tstep" \
+        --replay_buffer_dirs "$buffers_csv" \
+        "${COMMON_ARGS[@]}"
+    local rc=$?
+    if [ $rc -ne 0 ]; then
+        echo "[FAIL] Stage $stage ($ds) 训练失败 (exit=$rc), 终止后续 Stage"
+        exit $rc
+    fi
+    echo "[OK] Stage $stage ($ds) 完成 -> $LOGS_ROOT/$rid--40000_chkpt"
+}
+
+# Stage 2: Task B, replay=A buffer, teacher=A (run_id v39r2 不覆盖 v39r)
+if [ "$START_STAGE" -le 2 ]; then
+    run_replay_stage 2 aloha_grab_roller_clean rt_v39r2_taskB \
+        "$CKPT_A" 30000 \
+        "$CKPT_A" 30000 \
+        "$BUFFER_ROOT/taskA"
+fi
+
+# Stage 3: Task C, replay=A+B buffers, teacher=回放版B
+if [ "$START_STAGE" -le 3 ]; then
+    run_replay_stage 3 aloha_stack_bowls_two_clean rt_v39r2_taskC \
+        "$LOGS_ROOT/rt_v39r2_taskB--40000_chkpt" 40000 \
+        "$LOGS_ROOT/rt_v39r2_taskB--40000_chkpt" 40000 \
+        "$BUFFER_ROOT/taskA" "$BUFFER_ROOT/taskB"
+fi
+
+# Stage 4: Task D, replay=A+B+C buffers, teacher=回放版C
+if [ "$START_STAGE" -le 4 ]; then
+    run_replay_stage 4 aloha_open_laptop_clean rt_v39r2_taskD \
+        "$LOGS_ROOT/rt_v39r2_taskC--40000_chkpt" 40000 \
+        "$LOGS_ROOT/rt_v39r2_taskC--40000_chkpt" 40000 \
+        "$BUFFER_ROOT/taskA" "$BUFFER_ROOT/taskB" "$BUFFER_ROOT/taskC"
+fi
+
+echo ""
+echo "==== 原型回放 v2 (漂移FiLM+降强度回放) Stage 2 + 3 + 4 全部完成 ===="
+echo "    B: $LOGS_ROOT/rt_v39r2_taskB--40000_chkpt"
+echo "    C: $LOGS_ROOT/rt_v39r2_taskC--40000_chkpt"
+echo "    D: $LOGS_ROOT/rt_v39r2_taskD--40000_chkpt"
+echo "    之后评估: bash policy/openvla-oft/eval_sequence.sh \$LOGS_ROOT/rt_v39r_taskD--40000_chkpt 4,5 50 v39rD A B C D"
